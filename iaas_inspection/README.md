@@ -139,3 +139,10 @@ example：
 
 
 
+### xlxs报告模板
+
+#### platform 
+![Image text](https://github.com/self-bug/inspection/blob/master/iaas_inspection/images/platform.png)
+
+#### os
+![Image text](https://github.com/self-bug/inspection/blob/master/iaas_inspection/images/os.png)
