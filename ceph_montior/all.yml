@@ -1,0 +1,30 @@
+---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: Get ceph cluster overview
+    shell: |
+      #!/usr/bin/bash
+      DOCKER_CMD='docker exec ceph_mon'
+
+      osd_used_rate=$(${DOCKER_CMD} ceph osd df | awk '/ssd|hdd/{print $17}' | xargs -I{} echo -n  '{} ')
+      osd_total_up_in=$(${DOCKER_CMD} ceph -s | awk '/osd:/{print $2" "$4" "$8}')
+      osd_ssd_balance=$(${DOCKER_CMD} ceph osd df | awk '/ssd/{print $17}' | xargs -I{} echo -n  '{} ')
+      osd_hdd_balance=$(${DOCKER_CMD} ceph osd df | awk '/hdd/{print $17}' | xargs -I{} echo -n  '{} ')
+      osd_pg_num=$(${DOCKER_CMD} ceph osd df | awk '/ssd|hdd/{print $19}' | xargs -I{} echo -n  '{} ')
+      cluster_health=$(${DOCKER_CMD} ceph -s | awk '/health:/{print $2}') 
+      osd_status=$(${DOCKER_CMD} ceph osd tree down | grep  -E 'down' | awk '{print $4"_"$5}' | xargs -I{} echo -n '{} ')
+
+      echo "{\"osd_used_rate\": \"${osd_used_rate:-[]}\", \
+      \"osd_total_up_in\": \"${osd_total_up_in:-[]}\", \
+      \"osd_ssd_balance\": \"${osd_ssd_balance:-[]}\", \
+      \"osd_hdd_balance\": \"${osd_hdd_balance:-[]}\", \
+      \"osd_pg_num\": \"${osd_pg_num:-[]}\", \
+      \"osd_status\": \"${osd_status:-[]}\", \
+      \"cluster_health\": \"${cluster_health:-[]}\"}"
+
+    register: ceph_data_json  
+
+  - name: debug ceph_data_dict
+    debug:
+      msg: "{{ ceph_data_json.stdout | ceph_overview_filter }}"
