@@ -27,6 +27,23 @@
    - {regexp: '^#?\* hard nofile', line: '* hard nofile {{ hard_nofile_num|default(65536) }}'}
    - {regexp: '^#?\* soft  core', line: '* soft  core 0'}
    - {regexp: '^#?\* hard  core', line: '* hard  core 0'}
+
+- name: 检查别名文件/etc/aliase（或/etc/mail/aliases）配置
+  lineinfile:
+   path: /etc/aliases
+   regexp: "{{ item.regexp }}"
+   line: "{{ item.line }}"
+  with_items:
+   - {regexp: '^games:', line: '# games:          root'}
+   - {regexp: '^ingres', line: '# ingres:          root'}
+   - {regexp: '^system:', line: '# system:          root'}
+   - {regexp: '^toor:', line: '# toor:          root'}
+   - {regexp: '^uucp:', line: '# uucp:          root'}
+   - {regexp: '^manager:', line: '# manager:          root'}
+   - {regexp: '^dumper:', line: '# dumper:          root'}
+   - {regexp: '^operator:', line: '# operator:          root'}
+   - {regexp: '^decode:', line: '# decode:          root'}
+   - {regexp: '^root:', line: '# root:          marc'}
      
 - name: 设置ssh服务banner信息
   lineinfile:
@@ -50,10 +67,10 @@
    line: "{{ item }}"
   with_items:
    - 'order hosts,bind'
-   - 'multi on'
+   - 'multi on' # on 允许主机拥有多个IP地址, off 不允许
    - 'nospoof on'
 
-- name: 赋予用户相关账号文件最小权限
+- name: 赋予用户相关账号文件最小权限和创建目录
   file:
    path: '{{ item.path}}'
    mode: '{{ item.mode }}'
@@ -64,7 +81,14 @@
    - {path: /etc/group, mode: 644, state: file}
    - {path: /etc/services, mode: 644, state: file}
    - {path: /etc/security, mode: 600, state: directory}
+   - {path: /var/log/pacct, mode: 600, state: directory}
    - {path: /etc/rsyslog.d/21-cloudinit.conf, mode: 640, state: file}
+   - {path: /etc/xinetd.conf, mode: 600, state: file}
+   - {path: /etc/grub.conf, mode: 600, state: file}
+   - {path: /boot/grub/grub.conf, mode: 600, state: file}
+   - {path: /etc/grub2.cfg, mode: 600, state: file}
+   - {path: /etc/lilo.conf, mode: 600, state: file}
+   - {path: /boot/grub2/grub.cfg, mode: 600, state: file}
   ignore_errors: yes
 
 - name: 禁止ICMP重定向
