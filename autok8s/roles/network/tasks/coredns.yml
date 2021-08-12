@@ -1,0 +1,74 @@
+---
+- name: Get coredns image status
+  shell: |
+    docker image ls | grep {{ coredns_tag_name_new }} | awk '{print $1}'
+    # /usr/bin/curl http://{{ docker_registry }}:{{ registry_port }}/v2/flannel/tags/list
+  register: coredns_image_status
+  when: inventory_hostname in docker_registry
+
+- name: debug coredns_image_status
+  debug:
+    msg: "镜像: {{ coredns_image_status.stdout }}"
+  when: inventory_hostname in docker_registry
+
+- block:  
+  - name: Copy coredns file to docker_register
+    copy:
+      src: "{{ docker_image_dir }}/{{ coredns }}"
+      dest: "{{ docker_image_dir }}"
+
+  - name: docker load -i {{ coredns }}
+    shell: |
+      docker load -i {{ docker_image_dir }}/{{ coredns }}
+    failed_when: false
+ 
+  - name: Coredns image tag
+    shell: |
+      docker tag {{ coredns_tag_name }}:{{ coredns_tag_version }} {{ coredns_tag_name_new }}:{{ coredns_tag_version }}
+    failed_when: false
+
+  - name: Coredns image push
+    shell: |
+      docker push {{ coredns_tag_name_new }}:{{ coredns_tag_version }}
+    failed_when: false
+
+  when:
+    - inventory_hostname == docker_registry
+    - coredns_image_status.stdout != "{{ coredns_tag_name_new }}"
+
+
+- name: Get coredns pod status
+  shell: |
+    kubectl get pod -n kube-system  | grep -wo coredns  | uniq
+  register: coredns_pod
+  when: inventory_hostname in groups['master'][0]
+
+- block:
+
+  - name: Register vars cluster_dns_svc_ip
+    shell: |
+      echo {{ service_cidr }} | cut -d/ -f1|awk -F. '{print $1"."$2"."$3"."$4+2}'
+    register: cluster_dns_svc_ip
+
+  - name: cluster kubernetes dns svc vip
+    debug:
+      msg: "{{ cluster_dns_svc_ip.stdout }}"
+
+  - name: Register vars cluster_cluster_dns_svc_ip
+    set_fact: cluster_cluster_dns_svc_ip={{ cluster_dns_svc_ip.stdout }}
+
+  - name: Create coredns yml template
+    template:
+      src: coredns.yml.j2
+      dest: "{{ docker_image_dir }}/coredns.yml"
+
+  - name: kubectl apply -f {{ docker_image_dir }}/coredns.yml
+    shell: kubectl apply -f {{ docker_image_dir }}/coredns.yml
+
+  - name: debug info
+    debug:
+      msg: "请再master节点执行以下命令检查：kubectl get pod -n kube-system  | grep  coredns"
+
+  when: 
+    - inventory_hostname in groups['master'][0]
+    - coredns_pod.stdout != 'coredns'

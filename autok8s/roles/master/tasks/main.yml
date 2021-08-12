@@ -1,0 +1,39 @@
+---
+
+- block:
+  - name: Create kubernetes master dir
+    file:
+      name: "{{ item }}"
+      state: directory
+      mode: 0755
+    with_items:
+      - "{{ BASE_DIR }}"
+      - "{{ kube_bin_dir }}"
+      - "{{ kube_bin }}"
+      - "{{ kube_dir }}"
+      - "{{ kube_ssl }}"
+      - "{{ kube_log }}"
+      - "{{ kube_conf }}"
+
+  - name: Copy master service certificate to master host
+    copy:
+      src: "{{ cfssl_dir }}/{{ item }}"
+      dest: "{{ kube_ssl }}"
+    with_items:
+      - "{{ master_certificate }}"
+  
+  - name: Copy master {{ kube_bin }} binary file to host
+    copy:
+      src: "{{ kube_bin }}/{{ item }}"
+      dest: "{{ kube_bin }}"
+      mode: 0755
+    with_items:
+      - "{{ master_service }}"
+
+  - include_tasks: install-kube-apiserver.yml
+  
+  - include_tasks: install-kube-controller-manager.yml
+  
+  - include_tasks: install-kube-scheduler.yml
+  
+  when: inventory_hostname in groups['master']

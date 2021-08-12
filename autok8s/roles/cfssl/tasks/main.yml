@@ -1,0 +1,44 @@
+---
+- name: Create cfssl dir
+  file:
+    name: "{{ item }}"
+    state: directory
+    mode: 0755
+  with_items:
+    - "{{ cfssl_dir }}"
+  when:  inventory_hostname in groups['deploy']
+
+- name: Create cfssl link
+  file:
+    src: "{{ cfssl_bin }}/{{ item }}"
+    dest: "/usr/bin/{{ item }}"
+    state: link
+  with_items:
+    - "{{ cfssl_file_list }}"
+  when:  inventory_hostname in groups['deploy']
+
+- name: 读取ca证书stat信息
+  stat: path="{{ cfssl_dir }}/ca.pem"
+  register: ca
+  when: inventory_hostname in groups['deploy']
+
+- block:
+  - name: 准备CA配置文件和签名请求 {{ cfssl_dir }} <ca-config.json ca-csr.json>
+    template:
+      src: "{{ item }}"
+      dest: "{{ cfssl_dir }}"
+    with_items:
+      - ca-config.json
+      - ca-csr.json
+
+  - name: 创建 CA 证书 {{ cfssl_dir }} <ca-key.pem ca.pem>
+    shell: |
+      cd {{ cfssl_dir }} && cfssl gencert -initca ca-csr.json | cfssljson -bare ca -
+
+  - include_tasks: create_service_ca.yml
+  - include_tasks: create_kubeconfig.yml  
+  when: 
+    - ca.stat.isreg is not defined
+    - inventory_hostname in groups['deploy']
+
+# - include_tasks: copy_certificate.yml

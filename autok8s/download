@@ -1,0 +1,320 @@
+#!/bin/bash
+
+
+BASE=/opt/kubelw
+SEC=10
+NUM=3
+
+# alias wget 
+wget="wget -c -nv  --tries=${NUM} --connect-timeout=${SEC}"
+
+# cfssl
+cfssl_bin=${BASE}/cfssl
+cfssl_url=https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
+cfssljson=https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
+cfssl_cert=https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64
+
+# etcd
+etcd_version=v3.4.9
+etcd_bin=${BASE}/etcd
+etcd_url=https://github.com/etcd-io/etcd/releases/download/${etcd_version}/etcd-${etcd_version}-linux-amd64.tar.gz
+
+
+# docker 
+docker_version=19.03.9
+docker_bin=${BASE}/docker
+docker_url=https://download.docker.com/linux/static/stable/x86_64/docker-${docker_version}.tgz
+
+
+# kubernetes
+# kube_version=v1.21.2
+kube_version=v1.20.2
+kube_bin=${BASE}/kube
+kube_url=https://dl.k8s.io/${kube_version}/kubernetes-server-linux-amd64.tar.gz
+
+# cni plugin
+cni_version=v0.8.7
+cni_bin=${BASE}/cni
+cni_url=https://github.com/containernetworking/plugins/releases/download/${cni_version}/cni-plugins-linux-amd64-${cni_version}.tgz
+
+# pause image
+pause_version=3.4.1
+sandbox_url=registry.aliyuncs.com/google_containers/pause:${pause_version}
+
+# ingress image
+ingress_version=0.30.0
+ingress_url=registry.cn-hangzhou.aliyuncs.com/google_containers/nginx-ingress-controller:${ingress_version}
+
+function logger() {
+  NOW_TIME=$(date +'%Y-%m-%d %H:%M:%S')
+  case "$1" in
+    debug)
+      echo -e "$NOW_TIME \033[36mDEBUG\033[0m $2"
+      ;;
+    info)
+      echo -e "$NOW_TIME \033[32mINFO\033[0m $2"
+      ;;
+    warn)
+      echo -e "$NOW_TIME \033[33mWARN\033[0m $2"
+      ;;
+    error)
+      echo -e "$NOW_TIME \033[31mERROR\033[0m $2"
+      exit $3
+      ;;
+    *)
+      ;;
+  esac
+}
+
+# 下载cfssl证书生成工具
+function download_cfssl(){
+
+  mkdir -p ${cfssl_bin}/bin
+  logger info '下载cfssl证书生成工具...'
+  for cfssl_url in ${cfssl_url} ${cfssljson} ${cfssl_cert};
+  do
+    packeg_name=$(echo ${cfssl_url} | cut -d'/' -f5) 
+    cfssl_name=$(echo ${cfssl_url} |cut -d'/' -f5 | cut -d'_' -f1)
+    if [[ ! -f ${cfssl_bin}/bin/${cfssl_name} ]];then 
+       $wget ${cfssl_url} -P ${cfssl_bin}/bin && \
+       logger info "下载成功: ${cfssl_name}" || logger error "下载失败: ${cfssl_name}" 1
+       mv ${cfssl_bin}/bin/${packeg_name} ${cfssl_bin}/bin/${cfssl_name}       
+    else
+       logger info "文件已存在: ${cfssl_name}"
+    fi
+  done
+  chmod 755 ${cfssl_bin}/bin/*
+  logger debug "cfssl证书工具保存路径: <${cfssl_bin}/bin/> \n"
+}
+
+# 下载etcd二进制文件
+function download_etcd(){
+
+  mkdir -p ${etcd_bin}/bin
+  logger info "下载etcd_${etcd_version}二进制包..."
+  if [[ ! -f ${etcd_bin}/etcd-${etcd_version}-linux-amd64.tar.gz ]];then
+    $wget ${etcd_url} -P ${etcd_bin} && \
+    logger info "下载etcd_${etcd_version}二进制包完成" || logger error "下载etcd_${etcd_version}二进制包失败" 2
+    tar -zxf ${etcd_bin}/etcd-${etcd_version}-linux-amd64.tar.gz -C ${etcd_bin}
+    mv ${etcd_bin}/etcd-${etcd_version}-linux-amd64/{etcd,etcdctl} ${etcd_bin}/bin
+    rm -rf ${etcd_bin}/etcd-${etcd_version}-linux-amd64
+  else
+    logger info "文件已存在: etcd_${etcd_version}"
+  fi
+  chmod -R 755 ${etcd_bin}/bin/*
+  logger debug "etcd_${etcd_version}二进制包保存路径: <${etcd_bin}/bin/> \n"
+  
+}
+
+# 下载docker二进制文件
+function download_docker(){
+
+  mkdir -p ${docker_bin}/bin
+  logger info "下载docker_${docker_version}二进制包..."
+
+  if [[ ! -f ${docker_bin}/docker-${docker_version}.tgz ]];then
+  $wget ${docker_url} -P ${docker_bin} && \
+  logger info "下载docker_${docker_version}二进制包完成" || logger error "下载docker_${docker_version}二进制包失败" 3
+  tar -zxf ${docker_bin}/docker-${docker_version}.tgz -C ${docker_bin}
+  mv ${docker_bin}/docker/* ${docker_bin}/bin/ && rm -rf ${docker_bin}/docker
+  else
+     logger info "文件已存在: docker_${docker_version}"
+  fi
+  chmod -R 755 ${docker_bin}/bin/*
+  logger debug "docker_${docker_version} 二进制包保存路径: <${docker_bin}/bin/> \n"
+}
+
+# 下载docker二进制文件
+function download_kube() {
+
+  mkdir -p ${kube_bin}/bin
+  logger info "下载kubenetes_${kube_version}二进制包..."
+  
+  if [[ ! -f ${kube_bin}/kubernetes-server-linux-amd64.tar.gz ]];then
+    $wget ${kube_url} -P ${kube_bin} && \
+    logger info "下载kubenetes_${kube_version}二进制包完成" || logger error "下载kubenetes_${kube_version}二进制包失败" 4
+    tar -zxf ${kube_bin}/kubernetes-server-linux-amd64.tar.gz -C ${kube_bin}
+    mv ${kube_bin}/kubernetes/server/bin/{kubeadm,kube-apiserver,kubectl,kubelet,kube-scheduler,kube-controller-manager,kubectl-convert,kube-proxy} ${kube_bin}/bin/
+    rm -rf ${kube_bin}/kubernetes
+  else
+    logger info "文件已存在: kubenetes_${kube_version}"  
+  fi
+  chmod -R 755 ${kube_bin}/bin/*
+  logger debug "kubenetes_${kube_version} 二进制包保存路径:<${kube_bin}/bin/> \n"
+}
+
+function download_cni() {
+   mkdir -p ${cni_bin}/bin
+   logger info "下载cni_${cni_version}二进制包..."
+   if [[ ! -f ${cni_bin}/cni-plugins-linux-amd64-${cni_version}.tgz ]];then
+      $wget ${cni_url} -P ${cni_bin} && \
+      logger info "下载cni_${cni_version}二进制包完成" || logger error "下载cni_${cni_version}二进制包失败" 11
+      tar -zxf  ${cni_bin}/cni-plugins-linux-amd64-${cni_version}.tgz -C ${cni_bin}/bin 
+   else
+      logger info "文件已存在: cni_${cni_version}"
+   fi
+   chmod -R 755 ${cni_bin}/bin/*
+   logger debug "cni_${cni_version} 二进制包保存路径:<${cni_bin}/bin/> \n"
+
+
+}
+
+
+function install_docker() {
+  # check if a container runtime is already installed
+  systemctl status docker|grep Active|grep -q running && { logger warn "docker 服务正在运行...\n"; return 0; } 
+  logger info "生成 docker 服务文件..."
+  cat > /etc/systemd/system/docker.service << EOF
+[Unit]
+Description=Docker Application Container Engine
+Documentation=http://docs.docker.io
+[Service]
+Environment="PATH=${docker_bin}/bin:/bin:/sbin:/usr/bin:/usr/sbin"
+ExecStartPre=/sbin/iptables -F
+ExecStartPre=/sbin/iptables -X
+ExecStartPre=/sbin/iptables -F -t nat
+ExecStartPre=/sbin/iptables -X -t nat
+ExecStartPre=/sbin/iptables -F -t raw
+ExecStartPre=/sbin/iptables -X -t raw
+ExecStartPre=/sbin/iptables -F -t mangle
+ExecStartPre=/sbin/iptables -X -t mangle
+ExecStart=${docker_bin}/bin/dockerd
+ExecStartPost=/sbin/iptables -P INPUT ACCEPT
+ExecStartPost=/sbin/iptables -P OUTPUT ACCEPT
+ExecStartPost=/sbin/iptables -P FORWARD ACCEPT
+ExecReload=/bin/kill -s HUP \$MAINPID
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=infinity
+LimitNPROC=infinity
+LimitCORE=infinity
+Delegate=yes
+KillMode=process
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  # configuration for dockerd
+  mkdir -p /etc/docker
+  logger info "生成: /etc/docker/daemon.json..."
+  cat > /etc/docker/daemon.json << EOF
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn",
+    "http://hub-mirror.c.163.com"
+  ],
+  "insecure-registries": [
+    "0.0.0.0/0",
+    "::/0"
+  ],
+  "storage-driver": "overlay2"
+}
+EOF
+  # disable selinux
+  setenforce 0
+  sed -i 's/^SELINUX=.*$/SELINUX=disabled/g' /etc/selinux/config
+  ln -s ${docker_bin}/bin/docker /usr/bin/docker 
+  logger info "开启docker服务...\n"
+  systemctl enable docker
+  systemctl daemon-reload && systemctl restart docker && sleep 4
+}
+
+function download_net_image {
+  mkdir -p ${BASE}/image
+  logger info "下载 calico 镜像"
+  for image_url in $(cat $(pwd)/yml/calico.yaml |grep image|uniq|  awk '{print $2}');
+  do
+     calico_name=$(echo ${image_url} | cut -d'/' -f2)
+     if [[ ! -f ${BASE}/image/calico_${calico_name}.tar ]];then
+       docker pull ${image_url} && docker save -o  ${BASE}/image/calico_${calico_name}.tar ${image_url} || logger error "镜像下载: ${image_url} 失败" 7
+     else
+       logger info "镜像: ${BASE}/image/calico_${calico_name}.tar 已存在"
+     fi
+  done
+  logger debug "下载 calico 镜像成功, 保存路径: <${BASE}/image/> \n"
+  logger info "下载 flannel 镜像"
+  for image_url in $(cat $(pwd)/yml/kube-flannel.yml |grep image|uniq|  awk '{print $2}');
+  do
+     flannel_name=$(echo ${image_url} | cut -d'/' -f3)
+     if [[ ! -f ${BASE}/image/flannel_${flannel_name}.tar ]];then
+       docker pull ${image_url} && docker save -o ${BASE}/image/flannel_${flannel_name}.tar ${image_url}  || logger error "镜像下载: ${image_url} 失败" 7
+     else
+        logger info "镜像: ${BASE}/image/flannel_${flannel_name}.tar 已存在"
+     fi
+  done
+  logger debug "下载 flannel 镜像成功, 保存路径: <${BASE}/image/> \n"
+  logger info "下载 coredns 镜像" 
+  for coredns_url in $(cat  $(pwd)/yml/coredns.yml |grep -w image|uniq|  awk '{print $2}');
+  do
+    coredns_name=$(echo ${coredns_url} | cut -d'/' -f2)
+    if [[ ! -f  ${BASE}/image/coredns_${coredns_name}.tar ]];then
+      docker pull ${coredns_url} && docker save -o ${BASE}/image/coredns_${coredns_name}.tar ${coredns_url} ||  logger error "镜像下载: ${coredns_url} 失败" 8
+    else
+      logger info "镜像: ${BASE}/image/coredns_${coredns_name}.tar 已存在"
+    fi
+  done
+  logger debug "下载 coredns 镜像成功, 保存路径: <${BASE}/image/> \n"
+  
+  logger info "下载 pause 镜像"
+  pause_name=$(echo ${sandbox_url} | cut -d'/' -f3)
+  if [[ ! -f ${BASE}/image/pause_${pause_name}.tar ]];then
+     docker pull ${sandbox_url} && docker save -o ${BASE}/image/pause_${pause_name}.tar ${sandbox_url} || logger error "镜像下载: ${sandbox_url} 失败" 9
+  else
+     logger info "镜像: ${BASE}/image/pause_${pause_name}.tar 已存在"
+  fi 
+  logger debug "下载 pause 镜像成功, 保存路径: <${BASE}/image/> \n"
+  
+}
+
+function download_register_image() {
+  mkdir -p ${BASE}/image
+  logger info "下载 registry 镜像"
+  if [[ ! -f ${BASE}/image/registry.tar ]];then
+    docker pull registry && docker save -o ${BASE}/image/registry.tar registry:latest || logger error "镜像下载: registry:latest 失败" 10
+  else 
+    logger info "镜像: ${BASE}/image/registry.tar 已存在"
+  fi
+  logger debug "下载 registry:latest 镜像成功, 保存路径: <${BASE}/image/> \n"
+}
+
+
+doenload_ingress_image() {
+  mkdir -p ${BASE}/image
+  logger info "下载 ingress 镜像"
+  if [[ ! -f ${BASE}/image/ingress.tar ]];then
+      docker pull ${ingress_url} && docker save -o ${BASE}/image/ingress.tar ${ingress_url} || logger error "镜像下载: ingress:${ingress_version} 失败" 12
+  else
+     logger info "镜像: ${BASE}/image/ingress.tar  已存在"
+  fi
+  logger debug "下载 ingress:${ingress_version} 镜像成功, 保存路径: <${BASE}/image/> \n"
+
+
+  logger info "下载 nginx 镜像" 
+  if [[ ! -f ${BASE}/image/nginx.tar ]];then
+      docker pull nginx && docker save -o ${BASE}/image/nginx.tar  nginx:latest|| logger error "镜像下载: nginx:latest 失败" 13
+  else
+      logger info "镜像: ${BASE}/image/nginx.tar  已存在"
+  fi
+  logger debug "下载 nginx:latest 镜像成功, 保存路径: <${BASE}/image/> \n"
+ 
+
+}
+
+
+# if wget not exits
+type wget > /dev/null || logger error "不存在<wget>命令,请手动yum install wget \n" 6
+
+function main() {
+  download_cfssl
+  download_etcd 
+  download_kube
+  download_cni
+  download_docker
+  install_docker
+  download_net_image
+  download_register_image
+  doenload_ingress_image
+}
+
+main

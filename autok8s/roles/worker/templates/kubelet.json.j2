@@ -1,0 +1,38 @@
+{
+  "kind": "KubeletConfiguration",
+  "apiVersion": "kubelet.config.k8s.io/v1beta1",
+  "authentication": {
+    "x509": {
+      "clientCAFile": "{{ kube_ssl }}/ca.pem"
+    },
+    "webhook": {
+      "enabled": true,
+      "cacheTTL": "2m0s"
+    },
+    "anonymous": {
+      "enabled": false
+    }
+  },
+  "authorization": {
+    "mode": "Webhook",
+    "webhook": {
+      "cacheAuthorizedTTL": "5m0s",
+      "cacheUnauthorizedTTL": "30s"
+    }
+  },
+  "address": "{{ inventory_hostname }}",
+  "port": 10250,
+  "readOnlyPort": 10255,
+  "cgroupDriver": "systemd", 
+  "hairpinMode": "promiscuous-bridge",
+  "serializeImagePulls": false,
+  "featureGates": {
+    "RotateKubeletServerCertificate": true
+  },
+  "clusterDomain": "{{ clusterdomain }}",
+{% if enable_local_dns %}
+  "clusterDNS": ["{{ local_dns }}"]
+{% else %}
+  "clusterDNS": ["{{ cluster_cluster_dns_svc_ip }}"]
+{% endif %}
+}

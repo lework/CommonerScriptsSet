@@ -1,0 +1,57 @@
+---
+- name: Get ingress image status
+  shell: |
+    docker image ls | grep {{ ingress_tag_name_new }} | awk '{print $1}'
+    # /usr/bin/curl http://{{ docker_registry }}:{{ registry_port }}/v2/flannel/tags/list
+  register: ingress_image_status
+  when: inventory_hostname in docker_registry
+
+- name: debug ingress_image_status
+  debug:
+    msg: "镜像: {{ ingress_image_status.stdout }}"
+  when: inventory_hostname in docker_registry
+
+
+- block:
+  - name: Copy ingress image to master[0]
+    copy:
+      src: "{{ docker_image_dir }}/{{ ingress_file }}"
+      dest: "{{ docker_image_dir }}"
+  
+  - name: docker load -i ingress image
+    shell: |
+      docker load -i "{{ docker_image_dir }}/{{ ingress_file }}"
+    
+  - name: ingress image tag
+    shell: |
+      docker tag {{ ingress_tag_name }}:{{ ingress_version }} {{ ingress_tag_name_new }}:{{ ingress_version }}
+
+  - name: ingress image push
+    shell: |
+      docker push {{ ingress_tag_name_new }}:{{ ingress_version }}
+  when:
+    - inventory_hostname == docker_registry
+    - ingress_image_status.stdout != "{{ ingress_tag_name_new  }}" 
+
+- name: Get ingress pod status
+  shell: |
+    kubectl get pod -n ingress-nginx  | grep -wo ingress  | uniq
+  register: ingress_pod
+  when: inventory_hostname in groups['master'][0]
+
+- block:
+  - name: Create ingress yml template
+    template:
+      src: ingress.yml.j2
+      dest: "{{ docker_image_dir }}/ingress.yml"
+
+  - name: kubectl apply -f {{ docker_image_dir }}/ingress.yml
+    shell: kubectl apply -f {{ docker_image_dir }}/ingress.yml
+
+  - name: debug info
+    debug:
+      msg: "请再master节点执行以下命令检查：kubectl get pod -n ingress-nginx  | grep  ingress"
+
+  when:
+    - inventory_hostname in groups['master'][0]
+    - ingress_pod.stdout != "ingress"

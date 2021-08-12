@@ -1,0 +1,31 @@
+{
+  "CN": "kubernetes",
+  "hosts": [
+    "127.0.0.1",
+{% if groups['loadblance']|length > 0 %}
+    "{{ hostvars[groups['loadblance'][0]]['external_vip'] }}",
+{% endif %}
+{% for host in groups['all'] %}
+    "{{ host }}",
+{% endfor %}
+    "{{ cluster_kubernetes_svc_vip }}",
+    "kubernetes",
+    "kubernetes.default",
+    "kubernetes.default.svc",
+    "kubernetes.default.svc.cluster",
+    "kubernetes.default.svc.cluster.local"
+  ],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "CN",
+      "ST": "GUANGDONG",
+      "L": "GUANGZHOU",
+      "O": "k8s",
+      "OU": "System"
+    }
+  ]
+}

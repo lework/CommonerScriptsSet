@@ -1,0 +1,12 @@
+---
+cfssl_dir: "{{ BASE_DIR }}/cfssl"
+
+kube_apiserver: "{% if enable_apiserver_vip %}https://{{ hostvars[groups['loadblance'][0]]['external_vip'] }}:{{ secure_port }}{% else %}https://{{ groups['master'][0] }}:{{ secure_port }}{% endif %}"
+
+# temporary tools 
+kubectl: "{{ kube_bin }}/kubectl"
+
+cfssl_file_list:
+  - cfssl
+  - cfssl-certinfo
+  - cfssljson

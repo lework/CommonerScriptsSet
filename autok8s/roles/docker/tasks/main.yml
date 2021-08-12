@@ -1,0 +1,22 @@
+---
+- block:
+  - name: Create docker dir
+    file:
+      name: "{{ item }}"
+      state: directory
+      mode: 0755
+    with_items:
+      - "{{ BASE_DIR }}"
+      - "{{ docker_dir }}"
+      - "{{ docker_bin }}"
+  - name: Copy {{ docker_bin }} binary file to host
+    copy:
+      src: "{{ docker_bin }}"
+      dest: "{{ docker_dir }}"
+      mode: 0755
+  
+  - include_tasks: install_docker.yml
+  
+  - name: flush handlers
+    meta: flush_handlers
+  when: inventory_hostname in groups['docker']

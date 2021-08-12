@@ -1,0 +1,4 @@
+---
+docker_dir: "{{ BASE_DIR }}/docker"
+docker_bin: "{{ docker_dir }}/bin"
+docker_image: "{{ docker_image_dir }}"

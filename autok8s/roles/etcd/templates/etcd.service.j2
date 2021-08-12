@@ -1,0 +1,40 @@
+[Unit]
+Description=Etcd Server
+After=network.target
+After=network-online.target
+Wants=network-online.target
+Documentation=https://github.com/coreos
+
+[Service]
+Type=notify
+Environment="PATH={{ etcd_bin }}:/bin:/sbin:/usr/bin:/usr/sbin"
+WorkingDirectory={{ etcd_data }}
+ExecStart={{ etcd_bin }}/etcd \
+  --name={{ hostvars[inventory_hostname]['hostname'] }} \
+  --cert-file={{ etcd_ssl }}/etcd.pem \
+  --key-file={{ etcd_ssl }}/etcd-key.pem \
+  --peer-cert-file={{ etcd_ssl }}/etcd.pem \
+  --peer-key-file={{ etcd_ssl }}/etcd-key.pem \
+  --trusted-ca-file={{ etcd_ssl }}/ca.pem \
+  --peer-trusted-ca-file={{ etcd_ssl }}/ca.pem \
+  --initial-advertise-peer-urls=https://{{ inventory_hostname }}:2380 \
+  --listen-peer-urls=https://{{ inventory_hostname }}:2380 \
+  --listen-client-urls=https://{{ inventory_hostname }}:2379,http://127.0.0.1:2379 \
+  --advertise-client-urls=https://{{ inventory_hostname }}:2379 \
+  --initial-cluster-token=etcd-cluster-0 \
+  --initial-cluster={% for host in groups['etcd'] %}{{ hostvars[host]['hostname'] }}=https://{{ host }}:2380{% if not loop.last %},{% endif %}{% endfor %} \
+  --initial-cluster-state={{ cluster_state }} \
+  --data-dir={{ etcd_data }} \
+  --wal-dir={{ etcd_wal }} \
+  --snapshot-count=50000 \
+  --auto-compaction-retention=1 \
+  --auto-compaction-mode=periodic \
+  --max-request-bytes=10485760 \
+  --quota-backend-bytes=8589934592
+Restart=always
+RestartSec=15
+LimitNOFILE=65536
+OOMScoreAdjust=-999
+
+[Install]
+WantedBy=multi-user.target

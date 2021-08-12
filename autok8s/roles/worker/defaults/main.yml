@@ -1,0 +1,10 @@
+---
+pause_version: "3.4.1"
+pause_image: "registry.aliyuncs.com/google_containers/pause"
+pasuer_name: "pause_pause:3.4.1.tar"
+clusterdomain: "cluster.local"
+
+
+# # set local dns ip
+local_dns: '223.5.5.5'
+

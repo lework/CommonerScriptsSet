@@ -1,0 +1,5 @@
+---
+
+- include_tasks: centos.yml
+  when: 
+    - os_type == "CentOS" or os_type == "RedHat"

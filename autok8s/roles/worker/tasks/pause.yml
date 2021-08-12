@@ -1,0 +1,19 @@
+---
+- name: Copy pause image to worker host
+  copy:
+    src: "{{ docker_image_dir }}/{{ pasuer_name }}"
+    dest: "{{ docker_image_dir }}"
+
+- name: docker image ls {{ pause_image }}
+  shell: |
+    docker image ls | grep {{ pause_image }} | awk '{print $1}'
+  register: pause_img
+
+- name: debug pause_img
+  debug:
+    msg: "{{ pause_img.stdout }}"
+
+- name: docker load -i {{ pasuer_name }}
+  shell: |
+    docker load -i {{ docker_image_dir }}/{{ pasuer_name }}
+  when: pause_img.stdout != pause_image

@@ -1,0 +1,36 @@
+[Unit]
+Description=Kubernetes Controller Manager
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+
+[Service]
+Environment="PATH={{ kube_bin }}:/bin:/sbin:/usr/bin:/usr/sbin"
+ExecStart={{ kube_bin }}/kube-controller-manager \
+  --leader-elect=true \
+  --bind-address=127.0.0.1 \
+  --allocate-node-cidrs=true \
+  --cluster-name=kubernetes \
+  --cluster-cidr={{ cluster_cidr }} \
+  --cluster-signing-cert-file={{ kube_ssl }}/ca.pem \
+  --cluster-signing-key-file={{ kube_ssl }}/ca-key.pem \
+  --root-ca-file={{ kube_ssl }}/ca.pem \
+  --service-account-private-key-file={{ kube_ssl }}/ca-key.pem \
+  --service-cluster-ip-range={{ service_cidr }} \
+  --tls-cert-file={{ kube_ssl }}/kube-controller-manager.pem \
+  --tls-private-key-file={{ kube_ssl }}/kube-controller-manager-key.pem \
+  --kubeconfig={{ kube_ssl }}/kube-controller-manager.kubeconfig \
+  --use-service-account-credentials=true \
+  --experimental-cluster-signing-duration=87600h0m0s \
+  --use-service-account-credentials=true \
+  --feature-gates=RotateKubeletServerCertificate=true \
+  --controllers=*,bootstrapsigner,tokencleaner \
+  --horizontal-pod-autoscaler-use-rest-clients=true \
+  --horizontal-pod-autoscaler-sync-period=10s \
+  --alsologtostderr=true \
+  --logtostderr=false \
+  --log-dir={{ kube_log }} \
+  --v=2
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

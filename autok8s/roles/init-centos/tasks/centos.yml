@@ -1,0 +1,82 @@
+---
+
+- name: Stop firewalld NetworkManager dnsmasq
+  systemd: 
+    name: "{{ item }}"
+    enabled: no
+    state: stopped
+  failed_when: false
+  with_items:
+    - firewalld
+    - NetworkManager
+    - dnsmasq
+
+- name: Set timezone for {{ TimeZone }}
+  timezone:
+    name: "{{ TimeZone }}"
+
+- name: Disable swap
+  shell: |
+    swapoff -a
+
+- name:  Disable swap from fstab 
+  lineinfile:
+    dest: /etc/fstab     
+    regexp: "(^\\s*[^#].+swap)"
+    line: '#\1'
+    backrefs: yes
+
+
+- name: Temporary disable for selinux
+  shell: |
+    setenforce 0
+  failed_when: false
+
+- name: Permanent disable for  selinux
+  lineinfile:
+    dest: /etc/selinux/config
+    regexp: "^SELINUX="
+    line: "SELINUX=disabled"
+
+- name: Load br_netfilter module from  kernal
+  modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Set up bridged IPv6 traffic to pass to iptables
+  sysctl:
+   name: net.bridge.bridge-nf-call-ip6tables
+   value: 1
+   sysctl_file: /etc/sysctl.conf
+   reload: yes  
+
+- name: Set up bridged IPv4 traffic to pass to iptables
+  sysctl:
+   name: net.bridge.bridge-nf-call-iptables
+   value: 1
+   sysctl_file: /etc/sysctl.conf
+   reload: yes
+
+- name: Set net.ipv4.ip_forward = 1
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: 1
+    sysctl_file: /etc/sysctl.conf
+    reload: yes
+
+- name: Disable rsyslog to obtain journald logs
+  lineinfile:
+    dest: /etc/rsyslog.conf
+    state: present
+    regexp: "{{ item }}"
+    line: '#\1'
+    backrefs: yes
+  with_items:
+    - '(^\$ModLoad imjournal)'
+    - '(^\$IMJournalStateFile)'
+
+- name: Create hosts file
+  template:
+    src: hosts.j2
+    dest: /etc/hosts
+  

@@ -1,0 +1,62 @@
+---
+
+- name: Get registry image status
+  shell: |
+    docker image ls | grep {{ docker_registry }}:{{ registry_port }}/registry | awk '{print $1}'
+    # /usr/bin/curl http://{{ docker_registry }}:{{ registry_port }}/v2/registry/tags/list
+  failed_when: false
+  register: image_status
+  when: inventory_hostname in docker_registry
+
+- name: debug image_status
+  debug:
+    msg: "镜像: {{ image_status.stdout }}"
+  when: inventory_hostname in docker_registry
+
+- block:
+  - name: Create docker_image dir to {{ docker_registry }}
+    file:
+      name: "{{ docker_image }}"
+      state: directory
+      mode: 0644
+
+  - name: Copy registry image to {{ docker_registry }}
+    copy:
+      src: "{{ docker_image }}/registry.tar"
+      dest: "{{ docker_image }}"
+
+  - name: Load registry image from {{ docker_registry }}
+    shell: |
+      docker load -i "{{ docker_image }}/registry.tar"
+    failed_when: false
+
+  - name: run registry container
+    shell: |
+      docker run -d -v /opt/registry:/var/lib/registry -p {{ registry_port }}:{{ registry_port }} --restart=always --name registry registry:latest
+    failed_when: false
+
+  - name: Registry image tag
+    shell: |
+      docker tag registry:latest {{ docker_registry }}:{{ registry_port }}/registry:latest
+    failed_when: false
+
+  - name: Registry image push
+    shell: |
+      docker push {{ docker_registry }}:{{ registry_port }}/registry:latest
+    failed_when: false
+  when:
+    - inventory_hostname == docker_registry
+    - image_status.stdout != "{{ docker_registry }}:{{ registry_port }}/registry"
+
+
+- include_tasks: flannel.yml
+  when: cluster_network == 'flannel'
+- include_tasks: calico.yml
+  when: cluster_network == 'calico'
+- include_tasks: coredns.yml 
+
+#- block:
+#  - name: Copy flannel file master[0]
+
+
+#  - name: docker load -i flannel image 

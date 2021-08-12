@@ -1,0 +1,3 @@
+---
+secure_port: 6443
+node_port_range: "30000-32767"

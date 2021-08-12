@@ -1,0 +1,61 @@
+---
+
+
+- name: Create service bin dir
+  file:
+    name: "{{ item }}"
+    state: directory
+    mode: 0755
+  with_items:
+    - "{{ BASE_DIR }}"
+    - "{{ kube_bin_dir }}"
+    - "{{ kube_bin }}"
+#     - "{{ service_bin_dir }}"
+  when:
+    - inventory_hostname in groups['worker']
+    - inventory_hostname in groups['master']
+
+
+- name: Create etcd dir
+  file:
+    name: "{{ item }}"
+    state: directory
+    mode: 0755
+  with_items:
+    - "{{ etcd_dir }}"
+    - "{{ etcd_ssl }}"
+    - "{{ etcd_data }}"
+    - "{{ etcd_wal }}"
+    - "{{ etcd_bin_dir }}"
+    - "{{ etcd_bin }}"
+  when:
+    - inventory_hostname in groups['etcd']
+
+- name: Create kubernetes master dir
+  file:
+    name: "{{ item }}"
+    state: directory
+    mode: 0755
+  with_items:
+    - "{{ kube_dir }}"
+    - "{{ kube_ssl }}"
+    - "{{ kube_log }}"
+    - "{{ kube_conf }}"
+  when:
+    - inventory_hostname in groups['master']
+
+
+- name: Create kubernetes worker dir
+  file:
+    name: "{{ item }}"
+    state: directory
+    mode: 0755
+  with_items:
+    - "{{ kube_log }}"
+    - "{{ kube_dir }}"
+    - "{{ kube_ssl }}"
+    - "{{ kubelet_dir }}"
+    - "{{ kube_proxy_dir }}"
+    - "{{ kube_conf }}"
+  when:
+    - inventory_hostname in groups['worker']

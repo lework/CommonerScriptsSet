@@ -1,0 +1,55 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+
+  - name: register os vars
+    import_tasks: "{{ playbook_dir }}/roles/init-centos/tasks/gloable.yml"
+    tags:
+      - always
+
+  - name: Init centos os
+    import_role:
+      name: init-centos
+    tags:
+      - init-centos
+
+  - name: Install docker
+    import_role:
+      name: docker
+    tags:
+      - docker
+
+  - name: Create cfssl
+    import_role:
+      name: cfssl
+    tags:
+      - cfssl
+
+  - name: Install etcd
+    import_role:
+      name: etcd
+    tags:
+      - etcd
+
+  - name: Install master
+    import_role:
+      name: master
+    tags:
+      - master
+
+  - name: Install worker
+    import_role:
+      name: worker
+    tags:
+      - worker
+  - name: Install network
+    import_role:
+      name: network
+    tags:
+      - network
+  - name: Install ingress
+    import_role:
+      name: ingress
+    tags:
+      - ingress

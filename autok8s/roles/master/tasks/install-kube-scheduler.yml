@@ -1,0 +1,15 @@
+---
+
+- name: Create kube-scheduler systemd unit file
+  template:
+    src: kube-scheduler.service.j2
+    dest: /etc/systemd/system/kube-scheduler.service
+  notify:
+    - Restart kube-scheduler service
+
+
+- name: <kube-scheduler> 设置默认上下文
+  shell: |
+    cd {{ kube_ssl }} && \
+    {{ kubectl }} config use-context system:kube-scheduler --kubeconfig=kube-scheduler.kubeconfig
+  when: inventory_hostname in groups['master'][0]

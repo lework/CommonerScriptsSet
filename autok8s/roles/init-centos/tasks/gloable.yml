@@ -1,0 +1,13 @@
+- name: Get hostname
+  shell: hostname
+  register: name
+
+- name: set_facts hostanme
+  set_fact: hostname={{ name.stdout }}
+
+- name: Get os type
+  shell: cat /etc/redhat-release | awk '{print $1}'
+  register: os
+
+- name: set_facts os_type
+  set_fact: os_type={{ os.stdout }}

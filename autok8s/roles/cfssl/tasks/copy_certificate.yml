@@ -1,0 +1,27 @@
+---
+- name: Copy etcd service ertificate to etcd host
+  copy:
+    src: "{{ cfssl_dir }}/{{ item }}"
+    dest: "{{ etcd_ssl }}"
+  with_items:
+    - "{{ etcd_certificate }}"
+  when: inventory_hostname in groups['etcd']  
+
+- name: Copy master service certificate to master host
+  copy:
+    src: "{{ cfssl_dir }}/{{ item }}"
+    dest: "{{ kube_ssl }}"
+  with_items:
+    - "{{ master_certificate }}"
+  when: inventory_hostname in groups['master']
+
+
+- name: Copy kubeconfig to worker host
+  copy:
+    src: "{{ cfssl_dir }}/{{ item }}"
+    dest: "{{ kube_ssl }}"
+  with_items:
+    - "{{ worker_certificate }}"
+  when: inventory_hostname in groups['worker']
+
+

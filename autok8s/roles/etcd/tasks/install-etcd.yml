@@ -1,0 +1,32 @@
+---
+- name: Create etcd systemd unit file
+  template:
+    src: etcd.service.j2
+    dest: /etc/systemd/system/etcd.service
+  notify:
+    - Restart etcd service
+
+- name: Create etcd link
+  file:
+    src: "{{ etcd_bin }}/{{ item }}"
+    dest: "/usr/bin/{{ item }}"
+    state: link
+  with_items:
+    - "{{ etcd_service }}"
+
+- name: Get etcd version
+  shell: /usr/bin/etcdctl version
+  register: etcd_version
+
+- name: debug etcd version
+  debug:
+    msg: "{{ etcd_version.stdout }}"
+
+
+- name: Auto Create etcdctl 
+  lineinfile:
+    dest: ~/.bashrc
+    state: present
+    regexp: 'etcdctl'
+    line: "alias etcdctl='/usr/bin/etcdctl --cacert={{ etcd_ssl }}/ca.pem --cert={{ etcd_ssl }}/etcd.pem --key={{ etcd_ssl }}/etcd-key.pem \
+--endpoints={% for host in groups['etcd'] %}https://{{ host }}:2379{% if not loop.last %},{% endif %}{% endfor %}'"

@@ -1,0 +1,18 @@
+[Unit]
+Description=Kubernetes Scheduler
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+
+[Service]
+ExecStart={{ kube_bin }}/kube-scheduler \
+  --kubeconfig={{ kube_ssl }}/kube-scheduler.kubeconfig \
+  --address=127.0.0.1 \
+  --log-dir={{ kube_log }} \
+  --leader-elect=true \
+  --alsologtostderr=true \
+  --logtostderr=false \
+  --v=2
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

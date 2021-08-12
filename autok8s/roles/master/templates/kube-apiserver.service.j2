@@ -1,0 +1,54 @@
+[Unit]
+Description=Kubernetes API Server
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+After=network.target
+
+[Service]
+Environment="PATH={{ kube_bin }}:/bin:/sbin:/usr/bin:/usr/sbin"
+ExecStart={{ kube_bin }}/kube-apiserver \
+  --advertise-address={{ inventory_hostname }} \
+  --allow-privileged=true \
+  --anonymous-auth=false \
+  --insecure-port=0 \
+  --authorization-mode=Node,RBAC \
+  --bind-address={{ inventory_hostname }} \
+  --client-ca-file={{ kube_ssl }}/ca.pem \
+  --enable-admission-plugins=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \
+  --enable-bootstrap-token-auth=true \
+  --endpoint-reconciler-type=lease \
+  --runtime-config=api/all=true \
+  --etcd-cafile={{ kube_ssl }}/ca.pem \
+  --etcd-certfile={{ kube_ssl }}/etcd.pem \
+  --etcd-keyfile={{ kube_ssl }}/etcd-key.pem \
+  --etcd-servers={% for host in groups['etcd'] %}https://{{ host }}:2379{% if not loop.last %},{% endif %}{% endfor %}  \
+  --kubelet-client-certificate={{ kube_ssl }}/kube-apiserver.pem \
+  --kubelet-client-key={{ kube_ssl }}/kube-apiserver-key.pem \
+  --secure-port={{ secure_port }} \
+  --service-account-issuer=https://kubernetes.default.svc.cluster.local \
+  --service-account-signing-key-file={{ kube_ssl }}/ca-key.pem \
+  --service-account-key-file={{ kube_ssl }}/ca-key.pem \
+  --service-cluster-ip-range={{ service_cidr }} \
+  --service-node-port-range={{ node_port_range }} \
+  --tls-cert-file={{ kube_ssl }}/kube-apiserver.pem \
+  --tls-private-key-file={{ kube_ssl }}/kube-apiserver-key.pem \
+  --token-auth-file={{ kube_ssl }}/token.csv \
+  --enable-swagger-ui=true \
+  --allow-privileged=true \
+  --apiserver-count=3 \
+  --audit-log-maxage=30 \
+  --audit-log-maxbackup=3 \
+  --audit-log-maxsize=100 \
+  --event-ttl=1h \
+  --alsologtostderr=true \
+  --logtostderr=false \
+  --log-dir={{ kube_log }} \
+  --audit-log-path={{ kube_log }}/kube-apiserver-audit.log \
+  --v=2
+
+Restart=always
+RestartSec=5
+Type=notify
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

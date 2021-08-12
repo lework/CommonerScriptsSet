@@ -1,0 +1,35 @@
+---
+
+- name: Create /etc/docker dir 
+  file:
+    path: /etc/docker
+    state: directory
+
+- name: Create docker daemon.json file
+  template: 
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json   
+  notify:
+    - Restart docker service
+
+- name: Create docker systemd unit file
+  template: 
+    src: docker.service.j2 
+    dest: /etc/systemd/system/docker.service
+  notify:
+    - Restart docker service
+
+- name: Create docker link
+  file:
+    src: "{{ docker_bin }}/docker"
+    dest: "/usr/bin/docker"
+    state: link
+
+- name: Get docker version
+  shell: /usr/bin/docker --version
+  register: docker_version
+
+- name: debug docker version
+  debug:
+    msg: "{{ docker_version.stdout }}"
+

@@ -1,0 +1,27 @@
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+address: {{ inventory_hostname }}
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    cacheTTL: 2m0s
+    enabled: true
+  x509:
+    clientCAFile: {{ kube_ssl }}/ca.pem
+authorization:
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 5m0s
+    cacheUnauthorizedTTL: 30s
+cgroupDriver: systemd
+clusterDNS:
+{% if enable_local_dns %}
+  - {{ local_dns }}
+{% else %}
+  - {{ cluster_cluster_dns_svc_ip }}
+{% endif %}
+clusterDomain: {{ clusterdomain }}
+port: 10250
+# disable readOnlyPort 
+readOnlyPort: 10255

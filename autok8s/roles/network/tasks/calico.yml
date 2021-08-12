@@ -1,0 +1,74 @@
+---
+- name: Get calico image status
+  shell: |
+    docker image ls | grep {{ calico_kube_tag_name_new }} | awk '{print $1}'
+    # /usr/bin/curl http://{{ docker_registry }}:{{ registry_port }}/v2/flannel/tags/list
+  register: calico_image_status
+  when: inventory_hostname in docker_registry
+
+- name: debug calico_image_status
+  debug:
+    msg: "镜像: {{ calico_image_status.stdout }}"
+  when: inventory_hostname in docker_registry
+
+- block:  
+  - name: Copy calico file to docker_register
+    copy:
+      src: "{{ docker_image_dir }}/{{ item }}"
+      dest: "{{ docker_image_dir }}"
+    with_items:
+      - "{{ calico_file_list }}"
+  
+  - name: docker load -i calico image
+    shell: |
+      docker load -i {{ docker_image_dir }}/{{ item }}
+    with_items:
+      - "{{ calico_file_list }}"
+    failed_when: false
+
+  - name: Calico image tag
+    shell: |
+      docker tag {{ item.old_tag }} {{ item.new_tag }}:{{ calico_version }}
+    with_items:
+      - {old_tag: "{{ calico_cni_tag }}", new_tag: "{{ calico_cni_tag_name_new }}"}
+      - {old_tag: "{{ calico_pod2daemon_tag }}", new_tag: "{{ calico_pod2daemon_tag_name_new }}"}
+      - {old_tag: "{{ calico_node_tag }}", new_tag: "{{ calico_node_tag_name_new }}"}
+      - {old_tag: "{{ calico_kube_tag }}", new_tag: "{{ calico_kube_tag_name_new }}"}  
+    failed_when: false
+
+  - name: Calico image push
+    shell: |
+      docker push {{ item }}:{{ calico_version }}
+    with_items:
+      - "{{ calico_cni_tag_name_new }}"
+      - "{{ calico_pod2daemon_tag_name_new }}"
+      - "{{ calico_node_tag_name_new }}"
+      - "{{ calico_kube_tag_name_new }}"
+    failed_when: false
+  
+  when:
+    - inventory_hostname == docker_registry
+    - calico_image_status.stdout != "{{ calico_kube_tag_name_new }}"
+
+- name: Get calico pod status
+  shell: |
+    kubectl get pod -n kube-system  | grep -wo calico  | uniq
+  register: calico_pod
+  when: inventory_hostname in groups['master'][0]
+
+- block:
+  - name: Create calico yml template
+    template:
+      src: calico.yml.j2
+      dest: "{{ docker_image_dir }}/calico.yml"
+
+  - name: kubectl apply -f {{ docker_image_dir }}/calico.yml
+    shell: kubectl apply -f {{ docker_image_dir }}/calico.yml
+
+  - name: debug info
+    debug:
+      msg: "请再master节点执行以下命令检查：kubectl get pod -n kube-system  | grep  calico"
+
+  when: 
+    - inventory_hostname in groups['master'][0]
+    - calico_pod.stdout != "calico"

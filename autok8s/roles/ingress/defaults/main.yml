@@ -1,0 +1,7 @@
+---
+
+ingress_file: "ingress.tar"
+
+ingress_version: "0.30.0"
+ingress_tag_name: "registry.cn-hangzhou.aliyuncs.com/google_containers/nginx-ingress-controller"
+ingress_tag_name_new: "{{ docker_registry }}:{{ registry_port }}/nginx-ingress-controller"

@@ -1,0 +1,5 @@
+---
+
+etcd_data: "/var/lib/etcd/"
+etcd_wal: "/var/lib/etcd/wal"
+cluster_state: "new"

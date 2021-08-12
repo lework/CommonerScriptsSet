@@ -1,0 +1,11 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+spec:
+  containers:
+  - image: busybox:latest
+    name: busybox
+    command: ["sh", "-c", "sleep 300000"]
+  restartPolicy: Always

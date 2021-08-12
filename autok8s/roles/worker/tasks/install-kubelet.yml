@@ -1,0 +1,40 @@
+---
+- block:
+  - name: Register vars cluster_dns_svc_ip
+    shell: |
+      echo {{ service_cidr }} | cut -d/ -f1|awk -F. '{print $1"."$2"."$3"."$4+2}'
+    register: cluster_dns_svc_ip
+
+  - name: cluster kubernetes dns svc vip
+    debug:
+      msg: "{{ cluster_dns_svc_ip.stdout }}"
+
+  - name: Register vars cluster_cluster_dns_svc_ip
+    set_fact: cluster_cluster_dns_svc_ip={{ cluster_dns_svc_ip.stdout }}
+  connection: local
+  run_once: true
+
+- name: Create kubelet config.yml
+  template:
+    src: kubelet-config.yml.j2
+    dest: "{{ kube_dir }}/kubelet-config.yml"
+  notify:
+    - Restart kubelet service
+
+- name: Create kubelet systemd unit file
+  template:
+    src: kubelet.service.j2
+    dest: /etc/systemd/system/kubelet.service
+  notify:
+    - Restart kubelet service
+
+- name: flush handlers
+  meta: flush_handlers
+
+- name: Create kubelte link
+  file:
+    src: "{{ kube_bin }}/{{ item }}"
+    dest: "/usr/bin/{{ item }}"
+    state: link
+  with_items:
+    - "{{ worker_service }}"

@@ -1,0 +1,22 @@
+{
+    "CN": "system:kube-scheduler",
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "hosts": [
+{% for host in groups['master'] %}
+      "{{ host }}",
+{% endfor %}
+      "127.0.0.1"
+    ],
+    "names": [
+      {
+        "C": "CN",
+        "ST": "GUANGDONG",
+        "L": "GUANGZHOU",
+        "O": "system:kube-scheduler",
+        "OU": "system"
+      }
+    ]
+}

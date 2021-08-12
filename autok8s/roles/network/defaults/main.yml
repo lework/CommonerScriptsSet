@@ -1,0 +1,46 @@
+---
+
+# flannel packeg
+flannel_version: "v0.14.0"
+flannel_file: "flannel_flannel:{{ flannel_version }}.tar"
+flannel_file_list:
+  - "{{ flannel_file }}"
+
+# calico packeg 
+calico_version: "v3.14.2"
+calico_cni: "calico_cni:{{ calico_version }}.tar"
+calico_node: "calico_node:{{ calico_version }}.tar"
+calico_kube: "calico_kube-controllers:{{ calico_version }}.tar"
+calico_pod2daemon: "calico_pod2daemon-flexvol:{{ calico_version }}.tar"
+
+calico_file_list:
+  - "{{ calico_cni }}"
+  - "{{ calico_node }}"
+  - "{{ calico_kube }}"
+  - "{{ calico_pod2daemon }}"
+
+calico_cni_tag: "calico/cni:{{ calico_version }}"
+calico_pod2daemon_tag: "calico/pod2daemon-flexvol:{{ calico_version }}"
+calico_node_tag: "calico/node:{{ calico_version }}"
+calico_kube_tag: "calico/kube-controllers:{{ calico_version }}"
+
+calico_cni_tag_name_new: "{{ docker_registry }}:{{ registry_port }}/calico/cni"
+calico_pod2daemon_tag_name_new: "{{ docker_registry }}:{{ registry_port }}/calico/pod2daemon-flexvol"
+calico_node_tag_name_new: "{{ docker_registry }}:{{ registry_port }}/calico/node"
+calico_kube_tag_name_new: "{{ docker_registry }}:{{ registry_port }}/calico/kube-controllers"
+
+
+
+# cordns
+coredns_tag_version: "1.8.4"
+coredns: "coredns_coredns:{{ coredns_tag_version }}.tar"
+coredns_tag_name: "coredns/coredns"
+coredns_tag_name_new: "{{ docker_registry }}:{{ registry_port }}/coredns"
+
+# flannel tag
+flannel_tag_version: "v0.14.0"
+flannel_tag_name: "quay.io/coreos/flannel:{{ flannel_tag_version }}"
+flannel_tag_name_new: "{{ docker_registry }}:{{ registry_port }}/flannel"
+
+# dns file
+resolv: "/etc/resolv.conf"

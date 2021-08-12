@@ -1,0 +1,46 @@
+---
+
+- name: Create kube-apiserver systemd unit file
+  template:
+    src: kube-apiserver.service.j2
+    dest: /etc/systemd/system/kube-apiserver.service
+  notify:
+    - Restart kube-apiserver service
+
+- name: Create kube-apiserver link
+  file:
+    src: "{{ kube_bin }}/{{ item }}"
+    dest: "/usr/bin/{{ item }}"
+    state: link
+  with_items:
+    - "{{ master_service }}"
+
+- name: flush handlers
+  meta: flush_handlers
+
+- name: <kubectl>设置默认上下文
+  shell: |
+    cd {{ kube_ssl }} && \
+    {{ kubectl }} config use-context kubernetes --kubeconfig=kube.config
+  when: inventory_hostname in groups['master'][0]
+
+- name: Copy kube.config to {{ kube_conf }}/config
+  copy:
+    src: "{{ kube_ssl }}/kube.config"
+    dest: "{{ kube_conf }}/config"
+    mode: 0644
+    remote_src: yes
+
+- name: Get clusterrolebinding <kube-apiserver:kubelet-apis>
+  shell: |
+    kubectl get clusterrolebinding  | grep "kube-apiserver:kubelet-apis" | awk '{print $1}'
+  register: clusterrolebinding
+  when: 
+    - inventory_hostname in groups['master'][0] 
+
+- name: Authorize kubernetes certificate to access kubelet api permission
+  shell: |
+    kubectl create clusterrolebinding kube-apiserver:kubelet-apis --clusterrole=system:kubelet-api-admin --user kubernetes
+  when: 
+    - inventory_hostname in groups['master'][0]
+    - clusterrolebinding.stdout != "kube-apiserver:kubelet-apis" 

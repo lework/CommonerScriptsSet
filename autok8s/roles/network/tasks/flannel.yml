@@ -1,0 +1,62 @@
+---
+- name: Get flannel image status
+  shell: |
+    docker image ls | grep {{ flannel_tag_name_new }} | awk '{print $1}'
+    # /usr/bin/curl http://{{ docker_registry }}:{{ registry_port }}/v2/flannel/tags/list
+  register: flannel_image_status
+  when: inventory_hostname in docker_registry
+
+- name: debug flannel_image_status
+  debug:
+    msg: "镜像: {{ flannel_image_status.stdout }}"
+  when: inventory_hostname in docker_registry
+
+- block:  
+  - name: Copy flannel file to docker_register
+    copy:
+      src: "{{ docker_image_dir }}/{{ item }}"
+      dest: "{{ docker_image_dir }}"
+    with_items:
+      - "{{ flannel_file_list }}"
+  
+  - name: docker load -i {{ flannel_file }}
+    shell: |
+      docker load -i {{ docker_image_dir }}/{{ flannel_file }}
+    failed_when: false
+
+  - name: Flannel image tag
+    shell: |
+      docker tag {{ flannel_tag_name }} {{ flannel_tag_name_new }}:{{ flannel_tag_version }}
+    failed_when: false
+
+  - name: Flannel image push
+    shell: |
+      docker push {{ flannel_tag_name_new }}:{{ flannel_tag_version }}
+    failed_when: false
+  
+  when:
+    - inventory_hostname == docker_registry
+    - flannel_image_status.stdout != "{{ flannel_tag_name_new }}"
+
+- name: Get flannel pod status
+  shell: |
+    kubectl get pod -n kube-system  | grep -wo kube-flannel  | uniq
+  register: flannel_pod
+  when: inventory_hostname in groups['master'][0]
+
+- block:
+  - name: Create flannel yml template
+    template:
+      src: flannel.yml.j2
+      dest: "{{ docker_image_dir }}/flannel.yml"
+
+  - name: kubectl apply -f {{ docker_image_dir }}/flannel.yml
+    shell: kubectl apply -f {{ docker_image_dir }}/flannel.yml
+
+  - name: debug info
+    debug:
+      msg: "请再master节点执行以下命令检查：kubectl get pod -n kube-system  | grep  kube-flannel"
+
+  when: 
+    - inventory_hostname in groups['master'][0]
+    - flannel_pod.stdout != "kube-flannel"

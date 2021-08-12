@@ -1,0 +1,141 @@
+---
+# 基础目录
+BASE_DIR: '/opt/kubelw'
+
+# 时区
+TimeZone: 'Asia/Shanghai'
+
+# 镜像仓库IP 
+docker_registry: "172.20.163.244"
+registry_port: 5000
+
+# kubernetes cluster network, calico or flannel,  default: flannel
+cluster_network: flannel
+
+# master service bin file
+master_service:
+  - kube-apiserver
+  - kube-controller-manager
+  - kubectl
+  - kube-scheduler
+
+
+# worker service bin file
+worker_service:
+  - kube-proxy
+  - kubelet
+
+# etcd service bin file 
+etcd_service:
+  - etcd
+  - etcdctl
+
+# kubernetes cluster base dir
+kube_bin_dir: "{{ BASE_DIR }}/kube"
+etcd_bin_dir: "{{ BASE_DIR }}/etcd"
+kube_bin: "{{ kube_bin_dir }}/bin"
+etcd_bin: "{{ etcd_bin_dir }}/bin"
+service_bin_dir:
+  - "{{ kube_bin_dir }}"
+  - "{{ etcd_bin_dir }}"
+  - "{{ kube_bin }}"
+  - "{{ etcd_bin }}"
+
+# etcd service use dir
+etcd_dir: "/etc/etcd"
+etcd_ssl: "{{ etcd_dir }}/ssl"
+etcd_data: "/var/lib/etcd/" 
+etcd_wal: "/var/lib/etcd/wal"
+
+# kubernetes service use dir
+kube_dir: "/etc/kubernetes"
+kube_ssl: "{{ kube_dir }}/ssl"
+kube_log: "/var/log/kubernetes"
+kubelet_dir: "/var/lib/kubelet"
+kube_proxy_dir: "/var/lib/kube-proxy"
+kube_conf: "/root/.kube"
+
+cni_bin_file: "{{ BASE_DIR }}/cni/bin"
+cni_dir: "/opt/cni"
+cni_bin: "/opt/cni/bin"
+cni_plugin:
+  - bandwidth
+  - bridge
+  - dhcp
+  - firewall
+  - flannel
+  - host-device
+  - host-local
+  - ipvlan
+  - loopback
+  - macvlan
+  - portmap
+  - ptp
+  - sbr
+  - static
+  - tuning
+  - vlan
+# docker image dir
+docker_image_dir: "{{ BASE_DIR }}/image"
+
+# certificate directory
+cfssl_dir: "{{ BASE_DIR }}/cfssl"
+cfssl_bin: "{{ cfssl_dir }}/bin"
+
+# etcd certificate file
+etcd_certificate:
+  - ca-config.json
+  - ca.csr
+  - ca-csr.json 
+  - ca-key.pem
+  - ca.pem
+  - etcd-key.pem
+  - etcd.pem
+
+# kube-apiserver certificate file
+master_certificate:
+  - ca-key.pem
+  - ca.pem
+  - token.csv
+  - kube-apiserver-key.pem 
+  - kube-apiserver.pem
+  - etcd.pem
+  - etcd-key.pem
+  - kube-controller-manager-key.pem
+  - kube-controller-manager.pem
+  - kube-scheduler-key.pem
+  - kube-scheduler.pem
+  - kube-proxy-key.pem
+  - kube-proxy.pem
+  - kube.config
+  - kube-scheduler.kubeconfig
+  - kube-controller-manager.kubeconfig
+
+# worker service certificate file
+worker_certificate:
+  - kube-proxy.kubeconfig
+  - kubelet-bootstrap.kubeconfig
+  - ca.pem
+
+# temporary tools 
+kubectl: "{{ kube_bin }}/kubectl"
+
+# service cidr
+service_cidr: "10.68.0.0/16"
+# pod cidr
+cluster_cidr: "172.20.0.0/16"
+
+# api service
+secure_port: 6443
+node_port_range: "30000-32767"
+
+
+# enable service
+## cluster dns
+enable_local_dns: false
+
+# cluster domain
+clusterdomain: "cluster.local"
+
+## if use loadblance, enable enable_apiserver_vip
+enable_apiserver_vip: false

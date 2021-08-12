@@ -1,0 +1,96 @@
+---
+- block:
+  - name: Create kubernetes worker dir
+    file:
+      name: "{{ item }}"
+      state: directory
+      mode: 0755
+    with_items:
+      - "{{ BASE_DIR }}"
+      - "{{ kube_bin_dir }}"
+      - "{{ kube_bin }}"
+      - "{{ kube_log }}"
+      - "{{ kube_dir }}"
+      - "{{ kube_ssl }}"
+      - "{{ kubelet_dir }}"
+      - "{{ kube_proxy_dir }}"
+      - "{{ kube_conf }}"
+      - "{{ docker_image_dir }}"
+
+
+  - name: Copy kubeconfig to worker host
+    copy:
+      src: "{{ cfssl_dir }}/{{ item }}"
+      dest: "{{ kube_ssl }}"
+    with_items:
+      - "{{ worker_certificate }}"
+
+  - name: Copy worker {{ kube_bin }} binary file to worker host
+    copy:
+      src: "{{ kube_bin }}/{{ item }}"
+      dest: "{{ kube_bin }}"
+      mode: 0755
+    with_items:
+      - "{{ worker_service }}"
+
+  - name:  Create cni worker dir
+    file:
+      name: "{{ item }}"
+      state: directory
+      mode: 0755
+    with_items:
+      - "{{ cni_dir }}"
+      - "{{ cni_bin }}"
+   
+  - name: Copy cni plugin to worker host
+    copy:
+      src: "{{ cni_bin_file }}/{{ item }}"
+      dest: "{{ cni_bin }}"
+      mode: 0755
+    with_items:
+      - "{{ cni_plugin }}"
+
+  - include_tasks: pause.yml
+  - include_tasks: install-kubelet.yml
+  - include_tasks: install-kube-proxy.yml
+  when: inventory_hostname in groups['worker'] 
+
+- name: <kube-proxy> 设置默认上下文
+  shell: |
+    cd {{ kube_ssl }} && \
+    {{ kubectl }} config use-context default --kubeconfig=kube-proxy.kubeconfig
+  when: inventory_hostname in groups['master'][0]
+
+- name: <kubelet-bootstrap.kubeconfig> 设置默认上下文
+  shell: |
+    cd {{ kube_ssl }} && \
+    {{ kubectl }} config use-context default --kubeconfig=kubelet-bootstrap.kubeconfig
+  when: inventory_hostname in groups['master'][0]
+
+- name: Get clusterrolebinding <kubelet-bootstrap>
+  shell: |
+    kubectl get clusterrolebinding  | grep "kubelet-bootstrap" | awk '{print $1}'
+  register: clusterrolebinding
+  when: inventory_hostname in groups['master'][0]
+
+- name: Create rolebinding <kubelet-bootstrap>
+  shell: |
+    kubectl create clusterrolebinding kubelet-bootstrap --clusterrole=system:node-bootstrapper --user=kubelet-bootstrap
+  when:
+    - inventory_hostname in groups['master'][0]
+    - clusterrolebinding.stdout != "kubelet-bootstrap"
+
+- name: Get kubelet node
+  shell: |
+     kubectl get csr | grep -i pending | awk '{ print $1}'
+  register: node_status
+  when: inventory_hostname in groups['master'][0]
+
+- name: Add kubelet node
+  shell: |
+    kubectl certificate approve {{ item }}
+  with_items:
+    - "{{ node_status.stdout.split() }}"
+  when: 
+    - inventory_hostname in groups['master'][0] 
+    - node_status.stdout != ""

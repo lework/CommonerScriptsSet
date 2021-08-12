@@ -1,0 +1,39 @@
+---
+
+- block:
+  - name: Create etcd dir
+    file:
+      name: "{{ item }}"
+      state: directory
+      mode: 0755
+    with_items:
+      - "{{ BASE_DIR }}"
+      - "{{ etcd_dir }}"
+      - "{{ etcd_ssl }}"
+      - "{{ etcd_data }}"
+      - "{{ etcd_wal }}"
+      - "{{ etcd_bin_dir }}"
+      - "{{ etcd_bin }}"
+
+  - name: Copy etcd service ertificate to etcd host
+    copy:
+      src: "{{ cfssl_dir }}/{{ item }}"
+      dest: "{{ etcd_ssl }}"
+    with_items:
+      - "{{ etcd_certificate }}"
+
+
+  - name: Copy {{ etcd_bin }} binary file to host
+    copy:
+      src: "{{ etcd_bin }}"
+      dest: "{{ etcd_bin_dir }}"
+      mode: 0755
+    with_items:
+      - "{{ etcd_service }}"
+
+  - include_tasks: install-etcd.yml
+
+  - name: flush handlers
+    meta: flush_handlers
+
+  when: inventory_hostname in groups['etcd']

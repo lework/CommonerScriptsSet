@@ -1,0 +1,23 @@
+[Unit]
+Description=Kubernetes Kubelet
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+
+[Service]
+Environment="PATH={{ kube_bin }}:/bin:/sbin:/usr/bin:/usr/sbin"
+WorkingDirectory={{ kubelet_dir }}
+ExecStart={{ kube_bin }}/kubelet \
+  --cert-dir={{ kube_ssl }} \
+  --config={{ kube_dir }}/kubelet-config.yml \
+  --pod-infra-container-image={{ pause_image }}:{{ pause_version }} \
+  --bootstrap-kubeconfig={{ kube_ssl }}/kubelet-bootstrap.kubeconfig \
+  --kubeconfig={{ kube_dir }}/kubelet.kubeconfig \
+  --alsologtostderr=true \
+  --logtostderr=false \
+  --log-dir={{ kube_log }} \
+  --network-plugin=cni \
+  --v=2
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
