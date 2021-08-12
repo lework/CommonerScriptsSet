@@ -1,0 +1,30 @@
+- name: Ensure sudo group is present
+  group:
+    name: sudo
+    state: present
+
+- name: Ensure mec_unicom group is present
+  group:
+    name: mec_unicom
+    state: present
+
+- name: Create mec_unicom user
+  user:
+    name: mec_unicom
+    state: present
+    group: mec_unicom
+    groups: "sudo"
+    password: "{{ mec_unicom_password | password_hash('sha512') }}"
+    update_password: on_create
+
+- name: Grant mec_unicom user passwordless sudo
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '^mec_unicom'
+    line: 'mec_unicom ALL=(ALL) NOPASSWD: ALL'
+
+- name: Add public key to mec_unicom user authorized keys
+  authorized_key:
+    user: mec_unicom
+    key: "{{ mec_unicom_ssh_key }}"

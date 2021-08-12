@@ -1,0 +1,29 @@
+---
+- name: lock system user
+  user:
+    name: "{{ item.name }}"
+    shell: "{{ item.shell }}"
+  with_items:
+    - {name: "lp", shell: /bin/false"}
+    - {name: "sync", shell: /bin/false"}
+    - {name: "halt", shell: /bin/false"}
+    - {name: "operator", shell: /bin/false"}
+    - {name: "games", shell: /bin/false"}
+    - {name: "nobody", shell: /bin/false"}
+    - {name: "nfsnobody", shell: /bin/false"}
+
+- name: copy security.sh file
+  copy:
+    src: security.sh
+    dest: /etc/profile.d/
+    mode: 0755
+
+- name: set umask to 027
+  lineinfile:
+    path: /etc/profile
+    line: "{{ item.line }}"
+    regexp: "{{ item.regexp }}"
+  with_items:
+    - {regexp: "^umask", line: "umask 027"}
+    - {regexp: "^HISTFILESIZE=", line: "HISTFILESIZE=5"}
+    - {regexp: "^HISTSIZE=", line: "HISTSIZE=5"}

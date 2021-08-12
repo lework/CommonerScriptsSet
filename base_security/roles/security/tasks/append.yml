@@ -1,0 +1,75 @@
+- name: 设置口令认证失败后锁定策略/设置口令重复次数限制/口令长度,口令中包含的小写字母个数
+  lineinfile:
+    path: /etc/pam.d/system-auth
+    line: "{{ item }}"
+  with_items:
+    - 'auth        required      pam_tally2.so deny=5 onerr=fail no_magic_root unlock_time=180'
+    - 'password    sufficient    pam_unix.so md5 shadow nullok try_first_pass use_authtok remember=5'
+    - 'password    requisite     pam_cracklib.so try_first_pass retry=3 dcredit=-1 lcredit=-1 ucredit=-1 ocredit=-1 minlen=8'
+
+- name: 口令生存周期最大值、最小值、过期提前告警时间
+  lineinfile:
+   path: /etc/login.defs
+   regexp: "{{ item.regexp }}"
+   line: "{{ item.line }}"
+  with_items:
+   - {regexp: '^#?PASS_MAX_DAYS', line: 'PASS_MAX_DAYS {{ max_day|default(90) }}'}
+   - {regexp: '^#?PASS_MIN_DAYS', line: 'PASS_MIN_DAYS {{ min_day|default(10) }}'}
+   - {regexp: '^#?PASS_WARN_AGE', line: 'PASS_WARN_AGE {{ warn_age|default(7) }}'}
+
+- name: limits.conf
+  lineinfile:
+   path: /etc/security/limits.conf
+   regexp: "{{ item.regexp }}"
+   line: "{{ item.line }}"
+  with_items:
+   - {regexp: '^#?\* soft nofile', line: '* soft nofile {{ soft_nofile_num|default(65535) }}'}
+   - {regexp: '^#?\* hard nofile', line: '* hard nofile {{ hard_nofile_num|default(65536) }}'}
+   - {regexp: '^#?\* soft  core', line: '* soft  core 0'}
+   - {regexp: '^#?\* hard  core', line: '* hard  core 0'}
+     
+- name: 设置ssh服务banner信息
+  lineinfile:
+   state: present
+   create: yes
+   path: /etc/motd
+   line: "{{ item }}"
+  with_items:
+   - 'Warning!!! If you are not the operations staff, loggout the system right now'
+
+- name: 用PAM认证模块进行su权限控制
+  lineinfile:
+   path: /etc/pam.d/su
+   line: "{{ item }}"
+  with_items:
+   - 'auth            required        pam_wheel.so group=wheel'
+
+- name: 检查是否设置首先通过DNS解析IP地址、多个ip、对本机未经许可的IP欺骗
+  lineinfile:
+   path: /etc/host.conf
+   line: "{{ item }}"
+  with_items:
+   - 'order hosts,bind'
+   - 'multi on'
+   - 'nospoof on'
+
+- name: 赋予用户相关账号文件最小权限
+  file:
+   path: '{{ item.path}}'
+   mode: '{{ item.mode }}'
+   state: '{{ item.state }}'
+  with_items:
+   - {path: /etc/passwd, mode: 644, state: file}
+   - {path: /etc/shadow, mode: 400, state: file}
+   - {path: /etc/group, mode: 644, state: file}
+   - {path: /etc/services, mode: 644, state: file}
+   - {path: /etc/security, mode: 600, state: directory}
+   - {path: /etc/rsyslog.d/21-cloudinit.conf, mode: 640, state: file}
+  ignore_errors: yes
+
+- name: 禁止ICMP重定向
+  sysctl:
+   name: net.ipv4.conf.all.accept_redirects
+   value: 0
+   sysctl_file: /etc/sysctl.conf
+   reload: yes

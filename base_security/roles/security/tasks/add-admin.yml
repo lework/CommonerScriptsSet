@@ -1,0 +1,30 @@
+- name: Ensure sudo group is present
+  group:
+    name: sudo
+    state: present
+
+- name: Ensure admin group is present
+  group:
+    name: admin
+    state: present
+
+- name: Create admin user
+  user:
+    name: admin
+    state: present
+    group: admin
+    groups: "sudo"
+    password: "{{ admin_password | password_hash('sha512') }}"
+    update_password: on_create
+
+- name: Grant admin user passwordless sudo
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '^admin'
+    line: 'admin ALL=(ALL) NOPASSWD: ALL'
+
+- name: Add public key to admin user authorized keys
+  authorized_key:
+    user: admin
+    key: "{{ admin_ssh_key }}"

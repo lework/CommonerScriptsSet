@@ -1,0 +1,37 @@
+---
+- set_fact:
+    internal_ip: "{{ api_interface|address(ip_version) }}"
+    ip_netmask: "{{ '32' if ip_version|int == 4 else '128' }}"
+
+- name: Allow nova novnc proxy access vnc
+  include_role:
+    name: iptables
+    tasks_from: rules
+  vars:
+    order: 10
+    name: qemu-vnc
+    content: |
+      {% for host in groups['nova-novncproxy'] %}
+      -A INPUT -s {{ hostvars[host]['internal_ip'] }}/{{ ip_netmask }} -p tcp -m multiport --dports 5900:5999 -j ACCEPT
+      {% endfor %}
+      -A INPUT -p tcp -m multiport --dports 5900:5999 -j DROP
+    comment: "only allow nova novnc proxy access vnc port"
+  when:
+    - inventory_hostname in groups['memcached']
+
+- name: Allow control node access memcached
+  include_role:
+    name: iptables
+    tasks_from: rules
+  vars:
+    order: 10
+    name: memcached
+    content: |
+      {# FIXME(jeffrey4l): all api service need access memcached node rather than control node #}
+      {% for host in groups.control %}
+      -A INPUT -s {{ hostvars[host].internal_ip }}/{{ ip_netmask }} -p tcp -m tcp --dport 11211  -j ACCEPT
+      {% endfor %}
+      -A INPUT -p tcp -m tcp --dport 11211 -j DROP
+    comment: "only allow control node access memcached"
+  when:
+    - inventory_hostname in groups['compute']

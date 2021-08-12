@@ -1,0 +1,33 @@
+---
+# allow host login
+hosts_allow: {ssh: ['1.*.*.*']}
+
+# admin user password
+admin_password: "123456"
+china_password: "123456"
+
+# admin ssh key
+admin_ssh_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+china_ssh_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+
+# root login
+# The configurable parameter is yes, prohibit-password, forced-commands-only or no
+permit_root_login: "no"
+
+
+# host deny
+hosts_deny: {ssh: {'192.168.1.*'}}
+
+# ssh timeout
+ssh_timeout: "90"
+
+# ip version
+ip_version: "4"
+
+# Centralized log collect
+remote_log_ip: ""
+
+
+max_day: 90
+min_day: 10
+warn_age: 7

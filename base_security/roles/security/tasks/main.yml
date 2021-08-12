@@ -1,0 +1,10 @@
+---
+- include: add-admin.yml
+- include: add-china.yml
+- include: disable_services.yml
+- include: log.yml
+- include: ssh.yml
+- include: sysctl.yml
+- include: user.yml
+- include: append.yml 
+- include: lock_user.yml

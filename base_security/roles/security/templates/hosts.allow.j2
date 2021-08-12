@@ -1,0 +1,5 @@
+{% for service,ips in  hosts_allow.iteritems() %}
+{% for ip in  ips %}
+{{ service ~  ':' ~ ip ~ ':' ~ 'allow' }}
+{% endfor %}
+{% endfor %}

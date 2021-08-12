@@ -1,0 +1,13 @@
+---
+- name: 锁定工作无关的账号
+  shell: passwd -l {{ item }}
+  with_items:
+    - nfsnobody
+    - adm
+    - shutdown
+    - nobody 
+    - games
+    - operator
+    - halt
+    - lp
+  ignore_errors: yes

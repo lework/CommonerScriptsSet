@@ -1,0 +1,30 @@
+- name: Ensure sudo group is present
+  group:
+    name: sudo
+    state: present
+
+- name: Ensure china group is present
+  group:
+    name: china
+    state: present
+
+- name: Create china user
+  user:
+    name: china
+    state: present
+    group: china
+    groups: "sudo"
+    password: "{{ china_password | password_hash('sha512') }}"
+    update_password: on_create
+
+- name: Grant china user passwordless sudo
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '^china'
+    line: 'china ALL=(ALL) NOPASSWD: ALL'
+
+- name: Add public key to china user authorized keys
+  authorized_key:
+    user: china
+    key: "{{ china_ssh_key }}"

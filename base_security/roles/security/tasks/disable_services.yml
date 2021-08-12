@@ -1,0 +1,13 @@
+---
+- name: check snmpd.service exist
+  stat:
+    path: /usr/lib/systemd/system/snmpd.service
+  register: check_snmpd_service
+
+- name: disable snmpd service
+  systemd:
+    name: snmpd
+    state: stopped
+    enabled: false
+  when:
+    - check_snmpd_service.stat.exists

@@ -1,0 +1,47 @@
+- name: ssh timeout
+  lineinfile:
+    path: /etc/profile
+    regexp: '^export TMOUT='
+    line: "export TMOUT={{ ssh_timeout }}"
+    state: "{{ 'present' if ssh_timeout != '' else 'absent' }}"
+
+- name: bannerfile
+  copy:
+    src: sshbanner
+    dest: /etc/sshbanner
+  register: sshd_config
+  notify:
+    - restart sshd service
+
+- name: copy hosts.allow file
+  template:
+    src: hosts.allow.j2
+    dest: /etc/hosts.allow
+  when: hosts_allow | length > 0
+
+- name: copy hosts.deny file
+  template:
+    src: hosts.deny.j2
+    dest: /etc/hosts.deny
+  when: hosts_deny | length > 0
+
+- name: 修改目标主机SSH服务存在RC4、CBC或None弱加密算法
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - {regexp: '^#?Ciphers', line: 'Ciphers aes128-ctr,aes192-ctr,aes256-ctr'}
+
+- name: sshbanner
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - {regexp: '^#?Banner', line: 'Banner /etc/sshbanner'}
+    - {regexp: '^#?PermitRootLogin', line: 'PermitRootLogin {{ permit_root_login }}'}
+    - {regexp: '^#?Protocol', line: 'Protocol 2'}
+  register: sshd_config
+#  notify:
+#    - restart sshd service

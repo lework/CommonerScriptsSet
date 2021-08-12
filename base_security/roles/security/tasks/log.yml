@@ -1,0 +1,33 @@
+- name: set /var/log/messages only append but modify
+  file:
+    attributes: '+a'
+    path: /var/log/messages
+
+- name: make sure directory /var/adm exist
+  file:
+    path: /var/adm
+    state: directory
+
+- name: make sure file exist and change file mode
+  file:
+    path: "{{ item }}"
+    state: touch
+    mode: "0640"
+  with_items:
+    - "/etc/rsyslog.d/listen.conf"
+    - "/var/log/boot.log"
+    - "/var/log/cron"
+    - "/var/adm/messages"
+
+- name: config rsyslog
+  lineinfile:
+    path: /etc/rsyslog.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - {regexp: "/var/adm/messages", line: "*.err;kern.debug;daemon.notice /var/adm/messages"}
+    - {regexp: "^#?\\$ModLoad imtcp", line: "$ModLoad imtcp"}
+    - {regexp: "^#?\\$InputTCPServerRun 514", line: "$InputTCPServerRun 514"}
+    - {regexp: ".+@.+", line: "*.* @{{ remote_log_ip }}"}
+  notify:
+    - restart rsyslog service
