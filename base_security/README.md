@@ -38,6 +38,7 @@
 - 历史命令设置 
 - 对root为ls、rm设置别名
 - 修改目标主机SSH服务存在RC4、CBC或None弱加密算法
+- 检查别名文件/etc/aliase（或/etc/mail/aliases）配置
 
 #### 修复步骤
 
