@@ -22,7 +22,6 @@
       \"osd_pg_num\": \"${osd_pg_num:-[]}\", \
       \"osd_status\": \"${osd_status:-[]}\", \
       \"cluster_health\": \"${cluster_health:-[]}\"}"
-
     register: ceph_data_json  
 
   - name: debug ceph_data_dict
