@@ -9,10 +9,6 @@
   changed_when: osd_lookup.changed
   failed_when: osd_lookup.failed
 
-- name: debug osd_lookup
-  debug:
-    msg: "{{ osd_lookup }}"
-
 - name: Parsing disk info for Ceph OSDs
   set_fact:
     osds_bootstrap: "{{ osd_lookup.disks }}"
@@ -26,10 +22,6 @@
   register: osd_cache_lookup
   changed_when: osd_cache_lookup.changed
   failed_when: osd_cache_lookup.failed
-
-- name: debug osd_cache_lookup
-  debug:
-    msg: "{{ osd_cache_lookup }}"
 
 - name: Parsing disk info for Ceph Cache OSDs
   set_fact:
