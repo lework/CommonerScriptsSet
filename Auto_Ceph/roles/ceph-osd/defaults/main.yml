@@ -1,0 +1,18 @@
+---
+partition_name_osd_bootstrap: "{{ 'KOLLA_CEPH_OSD_BOOTSTRAP_BS' if ceph_osd_store_type == 'bluestore' else 'KOLLA_CEPH_OSD_BOOTSTRAP' }}"
+
+partition_name_cache_bootstrap: "{{ 'KOLLA_CEPH_OSD_CACHE_BOOTSTRAP_BS' if ceph_osd_store_type == 'bluestore' else 'KOLLA_CEPH_OSD_CACHE_BOOTSTRAP' }}"
+
+partition_name_osd_data: "{{ 'KOLLA_CEPH_DATA_BS' if ceph_osd_store_type == 'bluestore' else 'KOLLA_CEPH_DATA' }}"
+
+ceph_osd_image: "{{ docker_registry ~ '/' if docker_registry else '' }}{{ docker_namespace }}/{{ kolla_base_distro }}-{{ ceph_install_type }}-ceph-osd"
+ceph_osd_tag: "{{ ceph_tag }}"
+ceph_osd_image_full: "{{ ceph_osd_image }}:{{ ceph_osd_tag }}"
+
+
+kolla_ceph_use_udev: True
+ceph_osd_filesystem: "xfs"
+osd_initial_weight: "1"
+ceph_tcmalloc_tc_bytes: "134217728"
+ceph_osd_wipe_disk: ""
+ceph_osd_mount_options: "defaults,noatime"

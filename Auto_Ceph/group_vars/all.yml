@@ -1,0 +1,94 @@
+---
+
+###################
+# Kolla-Ceph options
+###################
+# Valid options are [ COPY_ONCE, COPY_ALWAYS ]
+config_strategy: "COPY_ALWAYS"
+
+container_config_directory: "/var/lib/kolla-ceph/config_files"
+
+# The directory on the deploy host containing globals.yml
+node_config: "{{ CONFIG_DIR | default('/etc/kolla-ceph') }}"
+
+# The directory to merge custom config files the kolla-ceph config files
+node_custom_config: "{{ playbook_dir }}/config"
+
+# The directory to store the config files on the destination node
+node_config_directory: "/etc/kolla-ceph"
+
+# Valid options are ['centos', 'debian', 'rhel', 'ubuntu']
+kolla_base_distro: "centos"
+
+# Valid options are [ binary, source ]
+kolla_install_type: "binary"
+
+# Ceph-mon container Python version
+distro_python_version: "2.7"
+
+
+####################
+# Docker options
+####################
+
+# Common options used throughout Docker
+docker_registry_email:
+docker_registry_password:
+docker_registry_username:
+
+# Valid options are [ no, on-failure, always, unless-stopped ]
+docker_restart_policy: "unless-stopped"
+
+# '0' means unlimited retries (applies only to 'on-failure' policy)
+docker_restart_policy_retry: "10"
+
+# Timeout after Docker sends SIGTERM before sending SIGKILL.
+docker_graceful_timeout: 60
+
+# Docker client timeout in seconds.
+docker_client_timeout: 120
+# Docker register nameapace
+docker_namespace: "kolla-ceph"
+
+
+docker_common_options:
+  auth_email: "{{ docker_registry_email }}"
+  auth_password: "{{ docker_registry_password }}"
+  auth_registry: "{{ docker_registry }}"
+  auth_username: "{{ docker_registry_username }}"
+  environment:
+    KOLLA_CONFIG_STRATEGY: "{{ config_strategy }}"
+  restart_policy: "{{ docker_restart_policy }}"
+  restart_retries: "{{ docker_restart_policy_retry }}"
+  graceful_timeout: "{{ docker_graceful_timeout }}"
+  client_timeout: "{{ docker_client_timeout }}"
+
+
+#####################
+# Ceph options
+####################
+
+# Ceph install type
+ceph_install_type: "{{ kolla_install_type }}"
+ceph_debug: False
+config_owner_user: "root"
+config_owner_group: "root"
+ceph_enable_cache: "no"
+ceph_cache_mode: "writeback"
+
+# Default cluster_interface == storage_interface
+cluster_interface: "{{ storage_interface }}"
+# Get ceph cluster management communication address
+storage_address: "{{ hostvars[inventory_hostname]['ansible_' + storage_interface]['ipv4']['address'] }}"
+# Get ceph cluster data synchronization address
+cluster_address: "{{ hostvars[inventory_hostname]['ansible_' + cluster_interface]['ipv4']['address'] }}"
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,40 @@
+# storage_interface: ceph cluster management communication interface. this value must be set
+# cluster_interface: ceph cluster data synchronization interface. the default is {{ storage_interface }}
+# for example:
+# [mon]
+# 172.17.2.179 storage_interface=eth0
+
+[mon]
+172.17.2.179 storage_interface=eth0
+# 172.17.2.183 storage_interface=eth0
+
+[mgr]
+172.17.2.179 
+
+[osd]
+172.17.2.179 
+
+[mds]
+172.17.2.179 
+
+[rgw]
+172.17.2.179 
+
+[nfs]
+
+[ceph-mon:children]
+mon
+
+[ceph-rgw:children]
+rgw
+
+[ceph-osd:children]
+osd
+
+[ceph-mgr:children]
+mgr
+
+[ceph-mds:children]
+mds
+[ceph-nfs:children]
+nfs

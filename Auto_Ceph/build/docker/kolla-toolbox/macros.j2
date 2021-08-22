@@ -1,0 +1,75 @@
+{% macro install_packages(packages, chain=False, clean=clean_package_cache) -%}
+{% if packages is defined and packages|length > 0 -%}
+    {% if not chain -%} RUN {% endif -%}
+    {%- if base_package_type == 'rpm' -%}
+        {{ distro_package_manager }} -y install {{ packages | join(' ') }}
+        {%- if clean %} \
+    && {{ distro_package_manager }} clean all && rm -rf /var/cache/{{ distro_package_manager }}{% endif -%}
+    {%- endif %}
+{%- endif %}
+{%- endmacro %}
+
+{# Be Extra vigilant about introducing any extra whitespace at the
+   end of the macro for chaining purposes -#}
+{% macro rpm_security_update(cleanup) -%}
+    {{ distro_package_manager }} -y update --security --sec-severity=Important --sec-severity=Critical
+    {%- if cleanup %} \
+    && {{ distro_package_manager }} clean all && rm -rf /var/cache/{{ distro_package_manager }}{% endif -%}
+{%- endmacro %}
+
+{% macro sed(file='', expressions=[]) -%}
+{% if file != '' and expressions|length >0 %}
+    RUN {% for expression in expressions %} sed -i "{{ file }}" -e "{{ expression }}" {% if not loop.last %} && {% endif %} {% endfor %}
+{% else %}
+    RUN echo "file and expressions must be set to use the sed macro"; /bin/false
+{% endif %}
+{%- endmacro %}
+
+{% macro get_pip() %}
+{% if distro_python_version == '2.7' %}
+    {% set python='python' %}
+{% else %}
+    {% set python='python3' %}
+{% endif %}
+RUN curl https://bootstrap.pypa.io/pip/2.7/get-pip.py -o get-pip.py \
+    && {{python}} get-pip.py \
+    && rm get-pip.py
+{% endmacro %}
+
+{% macro install_pip(packages, constraints = true, pip_version = pip) %}
+{%- if packages is sequence and packages|length > 0 -%}
+{%- if not pip_version -%}
+    {%- set pip_version = 'pip' -%}
+{%- endif -%}
+    {{ pip_version }} --no-cache-dir install --upgrade{{ ' ' }}
+    {%- if constraints %}-c /requirements/upper-constraints.txt {% endif -%}
+    {{ packages | join(' ') }}
+{%- else -%}
+    true
+{%- endif -%}
+{% endmacro %}
+
+{% macro configure_user(name, groups=None, shell=None, homedir=None) %}
+{% set user=users[name] %}
+{%- if not homedir %}
+{% set homedir='/var/lib/' + name %}
+{%- endif %}
+RUN usermod --append --home {{ homedir }} --groups kolla {{ name }} \
+    {%- if groups %}
+    && usermod --append --groups {{ groups }} {{ name }} \
+    {%- endif %}
+    {%- if shell %}
+    && chsh --shell {{ shell }} {{ name }} \
+    {%- endif %}
+    && mkdir -p {{ homedir }} \
+    && chown -R {{ user.uid }}:{{ user.gid }} {{ homedir }}
+{% endmacro %}
+
+{% macro install_fluent_plugins(plugins, chain=False) -%}
+{% if plugins is defined and plugins|length > 0 -%}
+    {% if not chain -%} RUN {% endif -%}
+    {%- if base_distro in ['centos'] -%}
+        ulimit -n 65536 && gem install --minimal-deps {{ plugins | join(' ') }}
+    {%- endif %}
+{%- endif %}
+{%- endmacro %}

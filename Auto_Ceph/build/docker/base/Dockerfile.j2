@@ -1,0 +1,229 @@
+FROM {{ base_image }}:{{ base_distro_tag }}
+LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build_date }}"
+
+{# NOTE(SamYaple): Avoid uid/gid conflicts by creating each user/group up front. #}
+{# Specifics required such as homedir or shell are configured within the service specific image #}
+{%- for name, user in users | dictsort() %}
+{% if loop.first -%}RUN {% else %}    && {% endif -%}
+    groupadd --force --gid {{ user.gid }} {{ name }} \
+    && useradd -l -M --shell /usr/sbin/nologin --uid {{ user.uid }} --gid {{ user.gid }} {{ name }}
+        {%- if not loop.last %} \{% endif -%}
+{%- endfor %}
+
+LABEL ceph_version_release="{{ ceph_version }}-{{ ceph_release }}"
+
+{% import "macros.j2" as macros with context %}
+{% block base_header %}{% endblock %}
+
+ENV KOLLA_BASE_DISTRO={{ base_distro }} \
+    KOLLA_INSTALL_TYPE={{ install_type }} \
+    KOLLA_INSTALL_METATYPE={{ install_metatype }} \
+    KOLLA_DISTRO_PYTHON_VERSION={{ distro_python_version }} \
+    KOLLA_BASE_ARCH={{ base_arch }} \
+    KOLLA_CEPH_VERSION={{ ceph_version }} \
+    KOLLA_CEPH_RELEASE={{ ceph_release }}
+
+#### Customize PS1 to be used with bash shell
+COPY kolla_bashrc /tmp/
+RUN cat /tmp/kolla_bashrc >> /etc/skel/.bashrc \
+    && cat /tmp/kolla_bashrc >> /root/.bashrc
+
+# PS1 var when used /bin/sh shell
+ENV PS1="$(tput bold)($(printenv KOLLA_SERVICE_NAME))$(tput sgr0)[$(id -un)@$(hostname -s) $(pwd)]$ "
+
+{% if base_package_type == 'rpm' %}
+# For RPM Variants, enable the correct repositories - this should all be done
+# in the base image so repos are consistent throughout the system.  This also
+# enables to provide repo overrides at a later date in a simple fashion if we
+# desire such functionality.  I think we will :)
+
+RUN CURRENT_DISTRO_RELEASE=$(awk '{match($0, /[0-9]+/,version)}END{print version[0]}' /etc/system-release); \
+    if [  $CURRENT_DISTRO_RELEASE != "{{ supported_distro_release }}" ]; then \
+        echo "Only release '{{ supported_distro_release }}' is supported on {{ base_distro }}"; false; \
+    fi \
+    && cat /tmp/kolla_bashrc >> /etc/bashrc \
+    && sed -i 's|^\(override_install_langs=.*\)|# \1|' /etc/yum.conf
+
+{% block base_yum_conf %}
+
+COPY yum.conf /etc/yum.conf
+
+{% endblock %}
+
+#### BEGIN REPO ENABLEMENT
+
+{% set base_yum_repo_files = [
+ ] %}
+
+{% set base_yum_url_packages = [
+] %}
+
+{% set base_yum_repo_keys = [
+] %}
+
+{% set base_yum_repo_files = [
+    "ceph-${KOLLA_CEPH_VERSION}.repo",
+    'td.repo'
+] %}
+
+{% set base_yum_repo_keys = [
+    'https://download.ceph.com/keys/release.asc',
+    'https://packages.treasuredata.com/GPG-KEY-td-agent'
+] %}
+
+{%- for repo_file in base_yum_repo_files | customizable('yum_repo_files') %}
+COPY {{ repo_file }} /etc/yum.repos.d/{{ repo_file }}
+{%- endfor %}
+
+{{ macros.install_packages(base_yum_url_packages | customizable("yum_url_packages")) }}
+
+{% for key in base_yum_repo_keys | customizable('yum_repo_keys') %}
+{%- if loop.first %}RUN {% else %}    && {% endif -%}
+    rpm --import {{ key }}
+{%- if not loop.last %} \{% endif %}
+{% endfor -%}
+
+    {% if base_distro == 'centos' %}
+
+{% block base_centos_gpg_key_import %}
+RUN rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+{% endblock %}
+
+{% set base_centos_yum_repo_keys = [
+    '/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-OpsTools'
+] %}
+
+{% set base_centos_yum_repo_packages = [
+    'centos-release-opstools',
+    'epel-release',
+    'yum-plugin-priorities'
+] %}
+
+{% set base_centos_yum_repos_to_disable = [
+] %}
+
+RUN {{ macros.install_packages(base_centos_yum_repo_packages | customizable("centos_yum_repo_packages"), chain=True, clean=False) }} \
+{% for repo in base_centos_yum_repos_to_disable | customizable('centos_yum_repos_to_disable') -%}
+    && yum-config-manager --disable {{ repo }} \
+{% endfor -%}
+{% for key in base_centos_yum_repo_keys | customizable('centos_yum_repo_keys') -%}
+    && rpm --import {{ key }} \
+{% endfor -%}
+    && {{ macros.rpm_security_update(clean_package_cache) }}
+
+    {%- endif %}
+    {# Endif for base_distro centos #}
+
+#### END REPO ENABLEMENT
+
+{# We are back to the basic if conditional here which is:
+    if base_package_type == 'rpm' #}
+
+{% set base_compiler_packages = [
+    'gcc',
+    'glibc-static'
+] %}
+
+{% block base_redhat_binary_versionlock %}{% endblock %}
+    {% if install_type == 'binary' %}
+{% set base_centos_binary_packages = [
+        'findutils',
+        'iproute',
+        'iscsi-initiator-utils',
+        'lvm2',
+        'ncurses',
+        'procps-ng',
+        'scsi-target-utils',
+        'socat',
+        'sudo',
+        'which'
+] %}
+{% if distro_python_version.startswith('3') %}
+{% set base_centos_binary_packages = base_centos_binary_packages + [
+        'python3'
+] %}
+{% else %}
+{% set base_centos_binary_packages = base_centos_binary_packages + [
+        'python'
+] %}
+{% endif %}
+
+# Install base packages
+{{ macros.install_packages( base_centos_binary_packages | customizable("centos_binary_packages")) }}
+    {% endif %}
+    {# Endif for install_type binary #}
+
+    {% if install_type == 'source' %}
+
+{% set base_centos_source_packages = [
+    'curl',
+    'iproute',
+    'iscsi-initiator-utils',
+    'lvm2',
+    'ncurses',
+    'procps-ng',
+    'scsi-target-utils',
+    'socat',
+    'sudo',
+    'tar',
+    'which'
+] %}
+# Update packages
+{{ macros.install_packages( base_centos_source_packages | customizable("centos_source_packages")) }}
+
+    {% endif %}
+    {# endif for install type is source for RPM based distros #}
+{# endif for base_package_type rpm #}
+{% endif %}
+
+{% if base_distro == 'centos' %}
+RUN sed -ri '/-session(\s+)optional(\s+)pam_systemd.so/d' /etc/pam.d/system-auth
+{% endif %}
+
+COPY set_configs.py /usr/local/bin/kolla_set_configs
+{% if distro_python_version.startswith('3') %}
+RUN sed -i -e "s+#\!/usr/bin/env python+#\!/usr/bin/env python3+g" /usr/local/bin/kolla_set_configs
+{% endif %}
+
+COPY start.sh /usr/local/bin/kolla_start
+COPY sudoers /etc/sudoers
+COPY curlrc /root/.curlrc
+
+{% if use_dumb_init %}
+
+{% block dumb_init_installation %}
+{% if base_arch == 'x86_64' %}
+
+RUN curl -sSL https://github.com/Yelp/dumb-init/releases/download/v1.2.2/dumb-init_1.2.2_{{debian_arch}} -o /usr/local/bin/dumb-init \
+    && chmod +x /usr/local/bin/dumb-init
+
+{% else %}
+
+{{ macros.install_packages(base_compiler_packages) }}
+
+{% set dumb_init_package_name = "dumb-init_1.2.2-1.1_" + debian_arch + ".deb" %}
+
+RUN curl -sSL http://deb.debian.org/debian/pool/main/d/dumb-init/{{dumb_init_package_name}} -o {{dumb_init_package_name}} \
+    && ar -x {{dumb_init_package_name}} data.tar.xz \
+    && tar xf data.tar.xz ./usr/bin/dumb-init \
+    && install -d -m 0755 /usr/local/bin \
+    && mv usr/bin/dumb-init /usr/local/bin/dumb-init \
+    && rm data.tar.xz {{dumb_init_package_name}}
+
+{% endif %}
+{% endblock %}
+
+ENTRYPOINT ["dumb-init", "--single-child", "--"]
+
+{% endif %}
+
+RUN touch /usr/local/bin/kolla_extend_start \
+    && chmod 755 /usr/local/bin/kolla_start /usr/local/bin/kolla_extend_start /usr/local/bin/kolla_set_configs \
+    && chmod 440 /etc/sudoers \
+    && mkdir -p /var/log/kolla-ceph \
+    && chown :kolla /var/log/kolla-ceph \
+    && chmod 2775 /var/log/kolla-ceph \
+    && rm -f /tmp/kolla_bashrc
+
+{% block base_footer %}{% endblock %}
+CMD ["kolla_start"]
