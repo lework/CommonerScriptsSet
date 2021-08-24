@@ -24,7 +24,7 @@ Auto_Ceph
 > 3台Centos虚拟机
 
 ### 下载ceph镜像
-> 部署节点：可以是任意一台mon组节点
+> 部署节点：可以是任意一台mon组的节点
 
 1. 在线下载ceph镜像<部署节点操作>
   
@@ -51,7 +51,7 @@ Auto_Ceph
       cd /root/Auto_Ceph/bin && sh install -K
   ```
   
-2. 在线下载docker<其它节点操作>
+2. 在线下载docker<其它节点操作(除部署节点)>
 
 ```
 1. wget https://bootstrap.pypa.io/pip/2.7/get-pip.py --no-check-certificate
