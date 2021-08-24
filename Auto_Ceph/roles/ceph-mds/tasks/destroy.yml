@@ -1,0 +1,6 @@
+---
+- name: Remove mds container
+  kolla_docker:
+    name: "ceph_mds"
+    action: "remove_container"
+  when: inventory_hostname in groups['ceph-mds']

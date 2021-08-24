@@ -1,0 +1,22 @@
+---
+- name: Checking free port for docker registry
+  wait_for:
+    host: "{{ docker_registry.split(':')[0] }}"
+    port: "{{ docker_registry.split(':')[1] }}"
+    connect_timeout: 1
+    timeout: 1
+    state: started
+  when:
+    - inventory_hostname in groups['ceph-mon'][0]
+
+
+- name: Checking free port for rgw port
+  wait_for:
+    host: "{{ inventory_hostname }}"
+    port: "{{ radosgw_port }}"
+    connect_timeout: 1
+    timeout: 1
+    state: stopped
+  when:
+    - inventory_hostname in groups['ceph-rgw']
+    - enable_ceph_rgw | bool

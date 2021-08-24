@@ -1,0 +1,233 @@
+#!/bin/bash
+#
+# This script can be used to interact with kolla via ansible.
+
+function process_cmd {
+    echo "$ACTION : $CMD"
+    $CMD
+    if [[ $? -ne 0 ]]; then
+        echo "Command failed $CMD"
+        exit 1
+    fi
+}
+
+function usage {
+    cat <<EOF
+Usage: $0 COMMAND [options]
+
+Options:
+    --inventory, -i <inventory_path>   Specify path to ansible inventory file
+    --playbook, -p <playbook_path>     Specify path to ansible playbook file
+    --configdir <config_path>          Specify path to directory with globals.yml
+    --key -k <key_path>                Specify path to ansible vault keyfile
+    --help, -h                         Show this usage information
+    --tags, -t <tags>                  Only run plays and tasks tagged with these values
+    --skip-tags <tags>                 Only run plays and tasks whose tags do not match these values
+    --extra, -e <ansible variables>    Set additional variables as key=value or YAML/JSON passed to ansible-playbook
+    --passwords <passwords_path>       Specify path to the passwords file
+    --limit <host>                     Specify host to run plays
+    --forks <forks>                    Number of forks to run Ansible with
+    --vault-id <@prompt or path>       Specify @prompt or password file (Ansible >=  2.4)
+    --ask-vault-pass                   Ask for vault password
+    --vault-password-file <path>       Specify password file for vault decrypt
+    --verbose, -v                      Increase verbosity of ansible-playbook
+
+Commands:
+    prechecks           Do pre-deployment checks for hosts
+    destroy             Destroy Kolla-ceph containers, volumes and host configuration
+    deploy              Deploy and start all kolla-ceph containers
+    os                  Initialize the kolla-ceph host
+    upgrade             Upgrades existing Kolla-ceph Environment
+EOF
+}
+
+function bash_completion {
+cat <<EOF
+--inventory -i
+--playbook -p
+--configdir
+--key -k
+--help -h
+--skip-tags
+--tags -t
+--extra -e
+--passwords
+--limit
+--forks
+--vault-id
+--ask-vault-pass
+--vault-password-file
+--verbose -v
+prechecks
+destroy
+deploy
+upgrade
+EOF
+}
+
+SHORT_OPTS="hi:p:t:k:e:v"
+LONG_OPTS="help,inventory:,playbook:,skip-tags:,tags:,key:,extra:,verbose,configdir:,passwords:,limit:,forks:,vault-id:,ask-vault-pass,vault-password-file:,yes-i-really-really-mean-it"
+
+RAW_ARGS="$*"
+ARGS=$(getopt -o "${SHORT_OPTS}" -l "${LONG_OPTS}" --name "$0" -- "$@") || { usage >&2; exit 2; }
+
+eval set -- "$ARGS"
+
+# BASEDIR=$(dirname $(pwd)) 
+BASEDIR=/root/Auto_Ceph
+INVENTORY="${BASEDIR}/00-hosts"
+PLAYBOOK="${BASEDIR}/site.yml"
+OSPLAYBOOK="${BASEDIR}/os.yml"
+GLOABLE=${BASEDIR}/config/globals.yml
+VERBOSITY=
+EXTRA_OPTS=${EXTRA_OPTS}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+
+    (--inventory|-i)
+            INVENTORY="$2"
+            shift 2
+            ;;
+
+    (--playbook|-p)
+            PLAYBOOK="$2"
+            shift 2
+            ;;
+
+    (--skip-tags)
+            EXTRA_OPTS="$EXTRA_OPTS --skip-tags $2"
+            shift 2
+            ;;
+
+    (--tags|-t)
+            EXTRA_OPTS="$EXTRA_OPTS --tags $2"
+            shift 2
+            ;;
+
+    (--verbose|-v)
+            VERBOSITY="$VERBOSITY --verbose"
+            shift 1
+            ;;
+
+    (--yes-i-really-really-mean-it)
+            if [[ ${RAW_ARGS} =~ "$1" ]]
+            then
+                DANGER_CONFIRM="$1"
+            fi
+            shift 1
+            ;;
+
+    (--key|-k)
+            VAULT_PASS_FILE="$2"
+            EXTRA_OPTS="$EXTRA_OPTS --vault-password-file=$VAULT_PASS_FILE"
+            shift 2
+            ;;
+
+    (--extra|-e)
+            EXTRA_OPTS="$EXTRA_OPTS -e $2"
+            shift 2
+            ;;
+
+    (--passwords)
+            PASSWORDS_FILE="$2"
+            shift 2
+            ;;
+
+    (--limit)
+            EXTRA_OPTS="$EXTRA_OPTS --limit $2"
+            shift 2
+            ;;
+
+    (--forks)
+            EXTRA_OPTS="$EXTRA_OPTS --forks $2"
+            shift 2
+            ;;
+
+    (--vault-id)
+            EXTRA_OPTS="$EXTRA_OPTS --vault-id $2"
+            shift 2
+            ;;
+
+    (--ask-vault-pass)
+            VERBOSITY="$EXTRA_OPTS --ask-vault-pass"
+            shift 1
+            ;;
+
+    (--vault-password-file)
+            EXTRA_OPTS="$EXTRA_OPTS --vault-password-file $2"
+            shift 2
+            ;;
+
+    (--incremental)
+            BACKUP_TYPE="incremental"
+            shift 1
+            ;;
+
+    (--help|-h)
+            usage
+            shift
+            exit 0
+            ;;
+
+    (--)
+            shift
+            break
+            ;;
+
+    (*)
+            echo "error"
+            exit 3
+            ;;
+esac
+done
+
+case "$1" in
+
+(os)
+        ACTION="Initialize OS"
+        PLAYBOOK=${OSPLAYBOOK}
+        ;;
+(prechecks)
+        ACTION="Pre-deployment checking"
+        EXTRA_OPTS="$EXTRA_OPTS -e kolla_ceph_action=precheck"
+        ;;
+(destroy)
+        ACTION="Destroy Kolla-ceph containers, volumes and host configuration"
+        EXTRA_OPTS="$EXTRA_OPTS -e kolla_ceph_action=destroy"
+        if [[ "${DANGER_CONFIRM}" != "--yes-i-really-really-mean-it" ]]; then
+            cat << EOF
+WARNING:
+    This will PERMANENTLY DESTROY all deployed kolla-ceph containers, volumes and host configuration.
+    There is no way to recover from this action. To confirm, please add the following option:
+    --yes-i-really-really-mean-it
+EOF
+            exit 1
+        fi
+        ;;
+(deploy)
+        ACTION="Deploying Playbooks"
+        EXTRA_OPTS="$EXTRA_OPTS -e kolla_ceph_action=deploy"
+        ;;
+(upgrade)
+        ACTION="Upgrading Ceph Environment"
+        EXTRA_OPTS="$EXTRA_OPTS -e kolla_ceph_action=upgrade"
+        ;;
+(bash-completion)
+        bash_completion
+        exit 0
+        ;;
+(*)     usage
+        exit 0
+        ;;
+esac
+
+if [[ -f ${GLOABLE} ]]; then
+    CONFIG_OPTS="-e @${GLOABLE}"
+else
+    echo "File: ${GLOABLE} is not found"
+    exit 1
+fi
+
+CMD="ansible-playbook -i $INVENTORY $CONFIG_OPTS $EXTRA_OPTS $PLAYBOOK $VERBOSITY"
+process_cmd

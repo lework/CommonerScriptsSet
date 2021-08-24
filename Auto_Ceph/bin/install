@@ -1,0 +1,172 @@
+#!/bin/bash
+
+BASE=$(pwd)
+BASE_DIR=$(dirname ${BASE})
+KOLLA_CEPH_PATH=${BASE}/kolla-ceph
+
+DOCKER_BASE=/opt
+DOCKER_VERSION=19.03.9
+DOCKER_URL=https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VERSION}.tgz
+
+SEC=10
+NUM=3
+wget="wget -c -nv  --tries=${NUM} --connect-timeout=${SEC}"
+
+function usage() {
+  echo -e "\033[33mUsage:\033[0m sh install [options]"
+  cat <<EOF
+  option: 
+    -K         install kolla-ceph
+    -D         download docker_${DOCKER_VERSION}
+    -R         download docker register
+    -I         install docker_${DOCKER_VERSION}
+EOF
+}
+
+function logger() {
+  NOW_TIME=$(date +'%Y-%m-%d %H:%M:%S')
+  case "$1" in
+    debug)
+      echo -e "$NOW_TIME \033[36mDEBUG\033[0m $2"
+      ;;
+    info)
+      echo -e "$NOW_TIME \033[32mINFO\033[0m $2"
+      ;;
+    warn)
+      echo -e "$NOW_TIME \033[33mWARN\033[0m $2"
+      ;;
+    error)
+      echo -e "$NOW_TIME \033[31mERROR\033[0m $2"
+      exit $3
+      ;;
+    *)
+      ;;
+  esac
+}
+
+function kolla_ceph(){
+  logger info "Install kolla-ceph"
+  if [[ ! -f ${KOLLA_CEPH_PATH} ]];then
+     logger error "Install kolla-ceph failed ${KOLLA_CEPH_PATH} path does not exist"
+  else
+     if [[ -f /usr/local/bin/kolla-ceph ]];then
+        logger warn "kolla-ceph already installed"   
+        exit 0
+     fi 
+     sed -i "s|KOLLA-CEPH-PATH|${BASE_DIR}|g" ${KOLLA_CEPH_PATH}
+     \cp ${KOLLA_CEPH_PATH} /usr/local/bin/
+     logger info "Kolla-ceph install success"
+  fi
+
+}
+
+function download_docker(){
+
+  logger info "Download docker_${DOCKER_VERSION} binary package..."
+
+  if [[ ! -f ${DOCKER_BASE}/docker-${DOCKER_VERSION}.tgz ]];then
+     $wget ${DOCKER_URL} -P ${DOCKER_BASE} && \
+     logger info "Download docker_${DOCKER_VERSION} binary package complete" || logger error "Download docker_${DOCKER_VERSION} binary package failed" 2
+     tar -zxf ${DOCKER_BASE}/docker-${DOCKER_VERSION}.tgz -C ${DOCKER_BASE}
+     chmod -R 755 ${DOCKER_BASE}/docker/*
+  else
+     logger warn "Docker_${DOCKER_VERSION}.tgz already exist"
+  fi
+  logger debug "Docker_${DOCKER_VERSION} binary package path: <${DOCKER_BASE}> \n"
+}
+
+
+function install_docker() {
+
+  systemctl status docker|grep Active|grep -q running && { logger warn "Docker service is running...\n"; return 0; } 
+  logger info "Create docker service file..."
+  cat > /etc/systemd/system/docker.service << EOF
+[Unit]
+Description=Docker Application Container Engine
+Documentation=http://docs.docker.io
+[Service]
+Environment="PATH=${DOCKER_BASE}/docker:/bin:/sbin:/usr/bin:/usr/sbin"
+ExecStartPre=/sbin/iptables -F
+ExecStartPre=/sbin/iptables -X
+ExecStartPre=/sbin/iptables -F -t nat
+ExecStartPre=/sbin/iptables -X -t nat
+ExecStartPre=/sbin/iptables -F -t raw
+ExecStartPre=/sbin/iptables -X -t raw
+ExecStartPre=/sbin/iptables -F -t mangle
+ExecStartPre=/sbin/iptables -X -t mangle
+ExecStart=${DOCKER_BASE}/docker/dockerd
+ExecStartPost=/sbin/iptables -P INPUT ACCEPT
+ExecStartPost=/sbin/iptables -P OUTPUT ACCEPT
+ExecStartPost=/sbin/iptables -P FORWARD ACCEPT
+ExecReload=/bin/kill -s HUP \$MAINPID
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=infinity
+LimitNPROC=infinity
+LimitCORE=infinity
+Delegate=yes
+KillMode=process
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  # configuration for dockerd
+  mkdir -p /etc/docker
+  logger info "Create /etc/docker/daemon.json..."
+  cat > /etc/docker/daemon.json << EOF
+{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn",
+    "http://hub-mirror.c.163.com"
+  ],
+  "insecure-registries": [
+    "0.0.0.0/0",
+    "::/0"
+  ],
+  "storage-driver": "overlay2"
+}
+EOF
+  # disable selinux
+  setenforce 0
+  sed -i 's/^SELINUX=.*$/SELINUX=disabled/g' /etc/selinux/config
+  ln -s ${DOCKER_BASE}/docker/docker /usr/bin/docker 
+  logger info "Start docker service \n"
+  systemctl enable docker
+  systemctl daemon-reload && systemctl restart docker && sleep 4
+}
+
+
+function download_register(){
+
+   logger info "Download registry:latest image"
+   if [[ ! -f ${DOCKER_BASE}/registry.tar ]];then
+      docker pull registry && docker save -o ${DOCKER_BASE}/registry.tar registry:latest || \
+      logger error "Download image registry:latest failed" 3
+   else
+      logger info "Image ${DOCKER_BASE}/registry.tar already exist"
+   fi
+   logger debug "Download registry:latest image sucess. save path: <${DOCKER_BASE}> \n"
+}
+
+
+
+while getopts "KDRI" OPTION; do
+  case "$OPTION" in
+    K)
+     kolla_ceph
+     ;;
+    D)
+     download_docker
+     ;;
+    R)
+     download_register
+     ;;
+    I)
+     install_docker
+     ;;
+    *)
+     usage
+     exit 1
+   esac
+done

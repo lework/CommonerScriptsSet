@@ -1,0 +1,56 @@
+[global]
+log file = /var/log/kolla-ceph/$cluster-$name.log
+log to syslog = false
+err to syslog = false
+log to stderr = false
+err to stderr = false
+
+fsid = {{ ceph_cluster_fsid }}
+
+mon initial members = {% for host in groups['ceph-mon'] %}{{ hostvars[host]['ansible_' + storage_interface]['ipv4']['address'] }}{% if not loop.last %}, {% endif %}{% endfor %}
+
+mon host = {% for host in groups['ceph-mon'] %}{{ hostvars[host]['ansible_' + storage_interface]['ipv4']['address'] }}{% if not loop.last %}, {% endif %}{% endfor %}
+
+mon addr = {% for host in groups['ceph-mon'] %}{{ hostvars[host]['ansible_' + storage_interface]['ipv4']['address'] }}:6789{% if not loop.last %}, {% endif %}{% endfor %}
+
+auth cluster required = cephx
+auth service required = cephx
+auth client required = cephx
+
+{% if ceph_osd_host_num|int == 1 %}
+osd pool default size = 1
+osd pool default min size = 1
+{% elif ceph_osd_host_num|int == 2 %}
+osd pool default size = 2
+osd pool default min size = 1
+{% else %}
+osd pool default size = 3
+osd pool default min size = 2
+{% endif %}
+
+# NOTE(inc0): This line will mean that if ceph was upgraded, it will run as root
+#             until contents of /var/lib/ceph are chowned to ceph user.
+#             This change was introduced in Jewel version and we should include
+#             chown operation in upgrade procedure. https://bugs.launchpad.net/kolla/+bug/1620702
+setuser match path = /var/lib/ceph/$type/$cluster-$id
+
+# NOTE(Jeffrey4l): kolla is using node ip as host bucket name, whereas `osd
+# crush update on start` feature depends on hostname. Disable this feature for
+# less confusion and upgrade impact.
+osd crush update on start = false
+
+[mon]
+# NOTE(SamYaple): The monitor files have been known to grow very large. The
+#                 only fix for that is to compact the files.
+mon compact on start = true
+mon cluster log file = /var/log/kolla-ceph/$cluster.log
+
+{% if enable_ceph_rgw | bool %}
+
+[client.radosgw.gateway]
+host = {{ storage_address }}
+keyring = /etc/ceph/ceph.client.radosgw.keyring
+rgw frontends = civetweb port={{ storage_address }}:{{ radosgw_port }}
+log file = /var/log/kolla-ceph/client.radosgw.gateway.log
+
+{% endif %}

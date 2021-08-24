@@ -1,0 +1,59 @@
+FROM {{ namespace }}/{{ image_prefix }}base:{{ tag }}
+LABEL maintainer="{{ maintainer }}" name="{{ image_name }}" build-date="{{ build_date }}"
+
+{% block ceph_base_header %}{% endblock %}
+
+{% import "macros.j2" as macros with context %}
+
+{{ macros.configure_user(name='ceph') }}
+
+{% if base_package_type == 'rpm' %}
+
+   {% set ceph_base_packages = [
+        'btrfs-progs',
+        'e2fsprogs',
+        'gdisk',
+        'hdparm',
+        'parted',
+        'smartmontools',
+        'xfsprogs',
+        'ceph-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'ceph-base-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'ceph-common-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'ceph-mds-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'ceph-mgr-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'ceph-mon-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'ceph-osd-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'ceph-selinux-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'libcephfs2-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'libradosstriper1-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'librbd1-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'librgw2-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'python-cephfs-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'python-rados-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'python-rgw-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'python-rbd-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'ceph-radosgw-${KOLLA_CEPH_RELEASE}-0.el7.x86_64',
+        'librados2-${KOLLA_CEPH_RELEASE}-0.el7.x86_64'
+   ] %}
+
+    {% if ceph_version == 'nautilus' %}
+        {% set ceph_base_packages = ceph_base_packages + [
+            'ceph-mgr-dashboard-${KOLLA_CEPH_RELEASE}-0.el7.noarch',
+            'python-ceph-argparse-${KOLLA_CEPH_RELEASE}-0.el7.x86_64'
+        ] %}
+    {% endif %}
+
+    {% if base_arch in ['aarch64', 'x86_64'] %}
+        {% set ceph_base_packages = ceph_base_packages + [
+            'ceph-fuse-${KOLLA_CEPH_RELEASE}-0.el7.x86_64'
+        ] %}
+    {% endif %}
+
+{% endif %}
+{{ macros.install_packages(ceph_base_packages | customizable("packages")) }}
+
+COPY extend_start.sh /usr/local/bin/kolla_extend_start
+RUN chmod 755 /usr/local/bin/kolla_extend_start
+
+{% block ceph_base_footer %}{% endblock %}

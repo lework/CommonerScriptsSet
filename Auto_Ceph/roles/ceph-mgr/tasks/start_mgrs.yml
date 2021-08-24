@@ -1,0 +1,31 @@
+---
+
+- name: Getting ceph mgr keyring
+  become: true
+  kolla_ceph_keyring:
+    name: "mgr.{{ storage_address }}"
+    caps: "{{ ceph_client_mgr_keyring_caps }}"
+  register: ceph_mgr_keyring
+  delegate_to: "{{ groups['ceph-mon'][0] }}"
+
+- name: Pushing ceph mgr keyring to ceph-mgr
+  become: true
+  copy:
+    content: |
+      [mgr.{{ storage_address }}]
+          key = {{ ceph_mgr_keyring.keyring.key }}
+    dest: "{{ node_config_directory }}/ceph-mgr/ceph.mgr.{{ storage_address }}.keyring"
+    mode: "0600"
+
+- name: Starting ceph-mgr container
+  become: true
+  kolla_docker:
+    action: "start_container"
+    common_options: "{{ docker_common_options }}"
+    image: "{{ ceph_mgr_image_full }}"
+    name: "ceph_mgr"
+    pid_mode: "host"
+    volumes:
+      - "{{ node_config_directory }}/ceph-mgr/:{{ container_config_directory }}/:ro"
+      - "/etc/localtime:/etc/localtime:ro"
+      - "kolla_ceph_logs:/var/log/kolla-ceph"

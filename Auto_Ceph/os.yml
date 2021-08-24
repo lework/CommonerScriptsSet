@@ -1,0 +1,21 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Setup host vars
+    setup:
+      filter: "{{ item }}"
+    register: hostinfo
+    with_items:
+      - "ansible_hostname"
+    tags: always
+
+  - name: Set_fact host vars
+    set_fact: host_vars={{ hostinfo.results }}
+    tags: always
+
+  - name: Optimization OS
+    import_role:
+      name: hosts
+    tags:
+      - hosts

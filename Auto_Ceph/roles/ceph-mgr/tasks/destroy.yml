@@ -1,0 +1,17 @@
+---
+- block:
+  - name: Remove mgr container
+    kolla_docker:
+      name: "ceph_mgr"
+      action: "remove_container"
+  
+  - name: Remove kolla-ceph volume
+    kolla_docker:
+      action: "remove_volume"
+      name: "{{ item }}"
+    with_items:
+      - "ceph_mon"
+      - "ceph_mon_config"
+      - "kolla_ceph_logs"
+    failed_when: False
+  when: inventory_hostname in groups['ceph-mgr'] 

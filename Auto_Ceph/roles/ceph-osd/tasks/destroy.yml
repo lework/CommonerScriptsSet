@@ -1,0 +1,27 @@
+---
+- block:
+  - name: Get osd container
+    shell: |
+      docker ps -a | grep {{ ceph_osd_image_full }} | awk '{print $1}'
+    register: osd_container
+  
+  - name: debug osd container
+    debug:
+      msg: "delete osd container: {{ osd_container.stdout.split() }}"
+  
+  - name: Remove osd container
+    kolla_docker:
+      name: "{{ item }}"
+      action: "remove_container"
+    with_items: "{{ osd_container.stdout.split() }}"
+  
+  - name: Remove kolla-ceph volume
+    kolla_docker:
+      action: "remove_volume"
+      name: "{{ item }}"
+    with_items:
+      - "ceph_mon"
+      - "ceph_mon_config"
+      - "kolla_ceph_logs"
+    failed_when: False
+  when: inventory_hostname in groups['ceph-osd']
