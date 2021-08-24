@@ -19,12 +19,12 @@
 172.20.163.67 storage_interface=eth0
 172.20.163.238 storage_interface=eth0
 
-[mds]
-
 [rgw]
 172.20.163.244 storage_interface=eth0
 172.20.163.67 storage_interface=eth0
 172.20.163.238 storage_interface=eth0
+
+[mds]
 
 [nfs]
 
