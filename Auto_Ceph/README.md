@@ -139,8 +139,6 @@ image_ceph = ceph
 #### 2. kolla-ceph部署使用
 	
 
-##### 2.0. 安装kolla-ceph工具 : cd /root/Auto_Ceph/bin && sh install -K
-
 2.1 初始化ceph主机节点
 
    * kolla-ceph -i 00-host os
