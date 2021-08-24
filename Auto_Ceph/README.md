@@ -20,13 +20,48 @@ Auto_Ceph
 ├── roles 部署代码
 └── site.yml 部署ceph playbook
 ```
-> 下载Auto_Ceph项目放在/root目录下    
-> 3台Centos虚拟机
+> 下载Auto_Ceph项目放在/root/目录下    
+> 本环境3台Centos虚拟机(单节点或多节点都可以)
 
-### 下载ceph镜像
-> 部署节点：可以是任意一台mon组的节点
+#### ceph节点规划
+```
+vi /root/Auto_Ceph/00-hosts
 
-1. 在线下载ceph镜像<部署节点操作>
+# storage_interface=eth0 ceph集群管理接口，必须配置 
+# cluster_interface=eth1 ceph集群数据同步接口，为空默认就是storage_interface
+
+[all:vars]
+storage_interface=eth0
+cluster_interface=eth1
+
+[mon]
+172.20.163.244  # 同时是部署节点
+172.20.163.67 
+172.20.163.238
+
+[mgr]
+172.20.163.244
+172.20.163.67 
+172.20.163.238 
+
+[osd]
+172.20.163.244
+172.20.163.67 
+172.20.163.238 
+
+[rgw]
+172.20.163.244
+172.20.163.67 
+172.20.163.238 
+
+[mds]
+
+```
+
+### 下载ceph镜像<部署节点操作>
+> 部署节点：可以是任意一台mon组的节点（172.20.163.244）
+
+1. 在线部署: 下载ceph镜像<部署节点操作>
   
   ```
   1. yum -y install wget
@@ -38,11 +73,12 @@ Auto_Ceph
       sh /root/Auto_Ceph/bin/install -D
   6. 运行docker
       sh /root/Auto_Ceph/bin/install -I
+      systemctl status docker
   7. 下载registry
       sh /root/Auto_Ceph/bin/install -R
   8. 运行registry
   	docker run -d -v /opt/registry:/var/lib/registry -p 5000:5000 --restart=always --name registry registry:latest
-  7. 修改配置（2. 修改构建ceph镜像参数）
+  7. 修改配置（3. 修改构建ceph镜像参数）
   8. 开始构建ceph镜像
       cd /root/Auto_Ceph/build/ && sh build.sh --tag nautilus
   9. yum install ansible
@@ -51,14 +87,15 @@ Auto_Ceph
       cd /root/Auto_Ceph/bin && sh install -K
   ```
   
-2. 在线下载docker<其它节点操作(除部署节点)>
+2. 在线部署: 下载docker<除部署节点外, 在其它节点操作以下步骤>
 
 ```
-1. wget https://bootstrap.pypa.io/pip/2.7/get-pip.py --no-check-certificate
-2. python get-pip.py
-3. 安装docker模块 
+1. yum -y install wget
+2. wget https://bootstrap.pypa.io/pip/2.7/get-pip.py --no-check-certificate
+3. python get-pip.py
+4. 安装docker模块 
     pip install docker
-4. 安装docker
+5. 安装并运行docker
     scp /root/Auto_Ceph/bin/install target_host:/root/
     sh /root/install -D &&  sh /root/install -I
 
@@ -74,7 +111,7 @@ type = binary
 regex =
 profile = image_ceph
 
-registry = 172.17.2.179:5000
+registry = 172.17.2.179:5000 # 必须按照实际修改
 username =
 password =
 email =
@@ -98,40 +135,12 @@ image_ceph = ceph
 
 
 
-### 部署节点依赖安装
- 
-
-
-
 ### 部署ceph集群
-#### 1. 修改配置
-1.1 vi /root/Auto_Ceph/00-hosts 修改主机文件
+#### 1. 修改参数
 
 ```
-# storage_interface="eth0" ceph集群管理接口，必须配置 
-# cluster_interface="eth1" ceph集群数据同步接口，为空默认就是storage_interface
-[mon]
-172.17.2.179 storage_interface=eth0 cluster_interface=eth1
-
-[mgr]
-172.17.2.179
-
-[osd]
-172.17.2.179
-
-[mds]
-172.17.2.179
-
-[rgw]
-172.17.2.179
- 
-```
- 
-   
-1.2 vi /root/Auto_Ceph/config/globals.yml 修改文件以下参数
-
-```
-   ceph_tag: "ceph镜像标签"
+vi /root/Auto_Ceph/config/globals.yml 
+   ceph_tag: "ceph镜像标签<nautilus>"
    docker_registry: "仓库地址:端口"
    ceph_osd_store_type: "bluestore或者是filestore"
 ```
@@ -143,7 +152,7 @@ image_ceph = ceph
 
    * kolla-ceph -i 00-host os
    
-2.2 部署前检查配置环境
+2.2 部署前检查配置
 
    * kolla-ceph -i 00-host prechecks
    
