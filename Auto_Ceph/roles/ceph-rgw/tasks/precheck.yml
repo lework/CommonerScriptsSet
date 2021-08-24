@@ -1,1 +1,11 @@
 ---
+- name: Checking free port for rgw port
+  wait_for:
+    host: "{{ inventory_hostname }}"
+    port: "{{ radosgw_port }}"
+    connect_timeout: 1
+    timeout: 1
+    state: stopped
+  when:
+    - inventory_hostname in groups['ceph-rgw']
+    - enable_ceph_rgw | bool
