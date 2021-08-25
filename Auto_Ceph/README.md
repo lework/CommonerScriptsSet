@@ -1,9 +1,12 @@
 # kolla-ceph部署
 
-> OS： Centos
+> ##### 来源：
+> 项目中的部分代码来自于kolla和kolla-ansible
 
 
-#### 项目结构
+
+
+### 项目结构
 
 ```
 Auto_Ceph
@@ -20,10 +23,11 @@ Auto_Ceph
 ├── roles 部署代码
 └── site.yml 部署ceph playbook
 ```
-> 下载Auto_Ceph项目放在/root/目录下    
-> 本环境3台Centos虚拟机(单节点或多节点都可以)
+> OS： Centos  
+> 下载`Auto_Ceph`项目放在`/root/`目录下    
+> 本环境3台虚拟机(可采用单节点或多节点)
 
-#### ceph节点规划
+### ceph节点规划
 ```
 vi /root/Auto_Ceph/00-hosts
 
@@ -64,85 +68,74 @@ cluster_interface=eth1
 1. 在线部署: 下载ceph镜像<部署节点操作>
   
   ```
-  1. yum -y install wget
+  1. type wget || yum -y install wget -y
+  
   2. wget https://bootstrap.pypa.io/pip/2.7/get-pip.py --no-check-certificate
+  
   3. python get-pip.py
+  
   4.ceph镜像下载安装依赖
-     pip install -r /root/Auto_Ceph/requirements.txt --ignore-installed 
+    pip install -r /root/Auto_Ceph/requirements.txt --ignore-installed
+      
   5. 下载docker
-      sh /root/Auto_Ceph/bin/install -D
+     sh /root/Auto_Ceph/bin/install -D
+      
   6. 运行docker
-      sh /root/Auto_Ceph/bin/install -I
-      systemctl status docker
+     sh /root/Auto_Ceph/bin/install -I
+     systemctl status docker
+      
   7. 下载registry
-      sh /root/Auto_Ceph/bin/install -R
+     sh /root/Auto_Ceph/bin/install -R
+      
   8. 运行registry
-  	docker run -d -v /opt/registry:/var/lib/registry -p 5000:5000 --restart=always --name registry registry:latest
+  	  docker run -d -v /opt/registry:/var/lib/registry -p 5000:5000 --restart=always --name registry registry:latest
+  	
   7. 修改配置（3. 修改构建ceph镜像参数）
+         vi /root/Auto_Ceph/build/ceph-build.conf
+         registry = 172.17.2.179:5000 # 必须按照实际修改, 其它默认既可 
+             
   8. 开始构建ceph镜像
-      cd /root/Auto_Ceph/build/ && sh build.sh --tag nautilus
-  9. yum install ansible
-  10. 节点之间ssh免密配置
+     cd /root/Auto_Ceph/build/ && sh build.sh --tag nautilus
+      
+  9. type ansible || yum install ansible -y
+  
+  10. 部署节点与节点之间ssh免密配置
+  
   11. 安装kolla-ceph工具 
       cd /root/Auto_Ceph/bin && sh install -K
+      
   ```
   
 2. 在线部署: 下载docker<除部署节点外, 在其它节点操作以下步骤>
 
 ```
-1. yum -y install wget
+1. type wget || yum -y install wget -y
+
 2. wget https://bootstrap.pypa.io/pip/2.7/get-pip.py --no-check-certificate
+
 3. python get-pip.py
+
 4. 安装docker模块 
     pip install docker
+    
 5. 安装并运行docker
-    scp /root/Auto_Ceph/bin/install target_host:/root/
-    sh /root/install -D &&  sh /root/install -I
+   scp /root/Auto_Ceph/bin/install ${target_host}:/root/
+   sh /root/install -D &&  sh /root/install -I
 
 ```
-
-3. 修改构建ceph镜像参数
-
-```
-1. vi /root/Auto_Ceph/build/ceph-build.conf
-[DEFAULT]
-base = centos
-type = binary
-regex =
-profile = image_ceph
-
-registry = 172.17.2.179:5000 # 必须按照实际修改
-username =
-password =
-email =
-
-namespace = kolla-ceph
-retries = 1
-push_threads = 4
-maintainer = Kolla Ceph Project
-ceph_version = nautilus
-ceph_release = 14.2.2 
-
-[profiles]
-image_ceph = ceph
-
-```
-> 可以按需求设置ceph_version、ceph_release参数下载需要的ceph版本. 
-
->  根据实际环境配置registry IP和端口.
-
-> 其它默认即可
-
 
 
 ### 部署ceph集群
 #### 1. 修改参数
 
 ```
+
 vi /root/Auto_Ceph/config/globals.yml 
+
    ceph_tag: "ceph镜像标签<nautilus>"
    docker_registry: "仓库地址:端口"
    ceph_osd_store_type: "bluestore或者是filestore"
+   
 ```
    
 #### 2. kolla-ceph部署使用
@@ -171,6 +164,10 @@ vi /root/Auto_Ceph/config/globals.yml
    * 下载ceph镜像
    * 修改最新ceph_tag
    * kolla-ceph -i 00-host upgrade
+   
+2.6 增加osd
+
+   * kolla-ceph -i 00-hosts -t ceph-osd
   
 #### 3. 磁盘打标签
 
