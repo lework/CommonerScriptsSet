@@ -58,6 +58,7 @@ cat <<EOF
 --ask-vault-pass
 --vault-password-file
 --verbose -v
+os
 prechecks
 destroy
 deploy
