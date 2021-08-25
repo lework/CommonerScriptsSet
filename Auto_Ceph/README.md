@@ -88,11 +88,11 @@ cluster_interface=eth1
      sh /root/Auto_Ceph/bin/install -R
       
   8. 运行registry
-  	  docker run -d -v /opt/registry:/var/lib/registry -p 5000:5000 --restart=always --name registry registry:latest
+     docker run -d -v /opt/registry:/var/lib/registry -p 5000:5000 --restart=always --name registry registry:latest
   	
-  7. 修改配置（3. 修改构建ceph镜像参数）
-         vi /root/Auto_Ceph/build/ceph-build.conf
-         registry = 172.17.2.179:5000 # 必须按照实际修改, 其它默认既可 
+  7. 修改配置
+     vi /root/Auto_Ceph/build/ceph-build.conf
+     registry = 172.17.2.179:5000 # 必须按照实际修改, 其它默认既可 
              
   8. 开始构建ceph镜像
      cd /root/Auto_Ceph/build/ && sh build.sh --tag nautilus
@@ -213,7 +213,7 @@ vi /root/Auto_Ceph/config/globals.yml
 
 
   
- 
+##### 待完善
  
 
  
