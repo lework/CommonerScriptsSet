@@ -135,6 +135,9 @@ vi /root/Auto_Ceph/config/globals.yml
    ceph_tag: "ceph镜像标签<nautilus>"
    docker_registry: "仓库地址:端口"
    ceph_osd_store_type: "bluestore或者是filestore"
+   ceph_pool_pg_num: 32
+   ceph_pool_pgp_num: 32
+   # create default pool: disks
    
 ```
    
@@ -143,31 +146,31 @@ vi /root/Auto_Ceph/config/globals.yml
 
 2.1 初始化ceph主机节点
 
-   * kolla-ceph -i 00-host os
+   * kolla-ceph -i /root/Auto_Ceph/00-host os
    
 2.2 部署前检查配置
 
-   * kolla-ceph -i 00-host prechecks
+   * kolla-ceph -i /root/Auto_Ceph/00-host prechecks
    
 2.3 部署ceph集群
 
    * 磁盘打标签(3. 磁盘打标签)
-   * kolla-ceph -i 00-host deploy
+   * kolla-ceph -i /root/Auto_Ceph/00-host deploy
    * docker exec ceph_mon ceph -s
    
 2.4 删除操作: ceph集群容器和volume
 
-  * kolla-ceph -i 00-host  destroy --yes-i-really-really-mean-it
+  * kolla-ceph -i /root/Auto_Ceph/00-host  destroy --yes-i-really-really-mean-it
   
 2.5 升级操作
 
    * 下载ceph镜像
    * 修改最新ceph_tag
-   * kolla-ceph -i 00-host upgrade
+   * kolla-ceph -i /root/Auto_Ceph/00-host upgrade
    
 2.6 增加osd
 
-   * kolla-ceph -i 00-hosts -t ceph-osd
+   * kolla-ceph -i /root/Auto_Ceph/00-hosts -t ceph-osd
   
 #### 3. 磁盘打标签
 
