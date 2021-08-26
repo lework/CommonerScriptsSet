@@ -175,9 +175,9 @@ vi /root/Auto_Ceph/config/globals.yml
   
 2.5 升级操作
 
-    下载新ceph镜像
-    修改最新ceph_tag: "new_ceph_version"
-    kolla-ceph -i /root/Auto_Ceph/00-host upgrade
+    1、下载新ceph镜像
+    2、修改最新ceph_tag: "new_ceph_version"
+    3、kolla-ceph -i /root/Auto_Ceph/00-host upgrade
    
 2.6 增加osd
 
