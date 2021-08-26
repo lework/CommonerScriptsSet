@@ -1,9 +1,11 @@
 # kolla-ceph部署
 
 > ##### kolla-ceph来源：
+
 > 项目中的部分代码来自于kolla和kolla-ansible
 
-> ##### kolla-ceph的介绍
+> ##### kolla-ceph的介绍:
+
 >1、镜像的构建很方便, 基于容器的方式部署，创建、删除方便
 
 >2、kolla-ceph的操作幂等，多次执行不会产生副作用
