@@ -22,7 +22,7 @@
 - name: Geting ceph mds keyring
   become: true
   kolla_ceph_keyring:
-    name: "mds.{{ storage_address }}"
+    name: "mds.{{ ansible_hostname }}"
     caps: "{{ ceph_client_mds_keyring_caps }}"
   register: ceph_mds_auth
   delegate_to: "{{ groups['ceph-mon'][0] }}"
@@ -33,7 +33,7 @@
     content: |
       [mds.{{ ansible_hostname }}]
           key = {{ ceph_mds_auth.keyring.key }}
-    dest: "{{ node_config_directory }}/ceph-mds/ceph.mds.{{ storage_address }}.keyring"
+    dest: "{{ node_config_directory }}/ceph-mds/ceph.mds.{{ ansible_hostname }}.keyring"
     mode: "0600"
 
 - name: Starting ceph-mds container
