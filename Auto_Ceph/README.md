@@ -144,7 +144,7 @@ cluster_interface=eth1
 ```
 vi /root/Auto_Ceph/config/globals.yml 
 
-   ceph_tag: "ceph_version < default: nautilus>"
+   ceph_tag: "nautilus"
    docker_registry: "仓库地址:端口"
    ceph_osd_store_type: "bluestore or filestore < default: bluestore>"
    ceph_pool_pg_num: 32 # 设置你的pg数
