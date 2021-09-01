@@ -193,6 +193,8 @@ vi /root/Auto_Ceph/config/globals.yml
 ```
 
 > 部署后检查集群
+> docker exec -it ceph_mon bash
+> ceph -s
 
 ![Image text](https://github.com/ACommoners/CommonerScriptsSet/blob/master/Auto_Ceph/image/cluster.png)
 
