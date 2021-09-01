@@ -267,7 +267,7 @@ vi /root/Auto_Ceph/config/globals.yml
 
 ```
 1. /root/Auto_Ceph/config/globals.yml 开启dashboard
-   enable_ceph_dashboard: true 默认已开启则不用管，否则要deploy
+   enable_ceph_dashboard: true 默认已开启则不用管，否则要kolla-ceph -i /root/Auto_Ceph/00-host deploy -t ceph-mgr
 
 2. 创建一个dashboard登录用户名密码
    ceph dashboard ac-user-create admin admin administrator
@@ -286,17 +286,17 @@ vi /root/Auto_Ceph/config/globals.yml
    enable_ceph_rgw: true
 2. kolla-ceph -i /root/Auto_Ceph/00-host deploy -t ceph-rgw
 3. 使用仪表板的对象网关管理功能，您需要提供system启用该标志的用户的登录凭据
-    radosgw-admin user create --uid=admin --display-name=admin --access-key=admin123 --secret-key=admin123 --system
+   radosgw-admin user create --uid=admin --display-name=admin --access-key=admin123 --secret-key=admin123 --system
 4. 提供access-key和secret-key
-    ceph dashboard set-rgw-api-access-key admin123
-    ceph dashboard set-rgw-api-secret-key admin123
+   ceph dashboard set-rgw-api-access-key admin123
+   ceph dashboard set-rgw-api-secret-key admin123
 5. ceph dashboard set-rgw-api-host 0.0.0.0/0
 6. ceph dashboard set-rgw-api-port 7480
 7. ceph dashboard set-rgw-api-scheme http
 8. ceph dashboard set-rgw-api-user-id admin
 9. 关闭对象存储签名证书
-    ceph dashboard set-rgw-api-ssl-verify False
-10. ceph dashboard set-rest-requests-timeout 30
+   ceph dashboard set-rgw-api-ssl-verify False
+10.ceph dashboard set-rest-requests-timeout 30
 
 ```
 > ceph dashboard rgw
