@@ -216,14 +216,14 @@ vi /root/Auto_Ceph/config/globals.yml
 ```
   * SSD磁盘：vdb vdd HDD磁盘：vdc
     1. 指定元数据分区 
-        parted /dev/vdc -s -- mklabel  gpt mkpart KOLLA_CEPH_OSD_BOOTSTRAP_BS_BLUE1 1 100
+       parted /dev/vdc -s -- mklabel  gpt mkpart KOLLA_CEPH_OSD_BOOTSTRAP_BS_BLUE1 1 100
     2. 指定block 分区
        parted /dev/vdc -s -- mkpart KOLLA_CEPH_OSD_BOOTSTRAP_BS_BLUE1_B 101 100%
       
     3. 指定block.wal分区
-      parted /dev/vdb -s -- mklabel  gpt mkpart KOLLA_CEPH_OSD_BOOTSTRAP_BS_BLUE1_W 1 1000
+       parted /dev/vdb -s -- mklabel  gpt mkpart KOLLA_CEPH_OSD_BOOTSTRAP_BS_BLUE1_W 1 1000
     4. 指定block.db分区
-     parted /dev/vdd -s -- mklabel  gpt mkpart KOLLA_CEPH_OSD_BOOTSTRAP_BS_BLUE1_D 1 10000
+       parted /dev/vdd -s -- mklabel  gpt mkpart KOLLA_CEPH_OSD_BOOTSTRAP_BS_BLUE1_D 1 10000
     
 
 ```
