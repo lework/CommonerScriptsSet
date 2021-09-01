@@ -11,3 +11,12 @@
   when:
     - enable_ceph_dashboard | bool
     - inventory_hostname in groups['ceph-mon']
+
+- name: Disable mgr/dashboard/ssl
+  become: true
+  command: docker exec ceph_mon ceph config set mgr mgr/dashboard/ssl false
+  changed_when: false
+  run_once: true
+  when:
+    - enable_ceph_dashboard | bool
+    - inventory_hostname in groups['ceph-mon']
