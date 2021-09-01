@@ -214,7 +214,7 @@ vi /root/Auto_Ceph/config/globals.yml
 >  为了提高 ceph 性能,且ssd磁盘数量有限，通常将db和wal存放在单独的 ssd 磁盘上
 
 ```
-  * SSD磁盘：vdb vdd HDD磁盘：vdc
+  # SSD磁盘：vdb vdd HDD磁盘：vdc
     1. 指定元数据分区 
        parted /dev/vdc -s -- mklabel  gpt mkpart KOLLA_CEPH_OSD_BOOTSTRAP_BS_BLUE1 1 100
     2. 指定block 分区
