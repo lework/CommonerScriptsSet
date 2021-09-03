@@ -78,10 +78,10 @@ cluster_interface=eth1
 ### 下载ceph镜像<部署节点操作>
 > 部署节点：可以是任意一台mon组的节点（172.20.163.244）
 
-1. 在线部署: 下载ceph镜像<部署节点操作>
+1. 在线部署: 下载ceph镜像、安装ansible、kolla-ceph<部署节点操作>
   
   ```
-  1. type wget || yum -y install wget -y
+  1. type wget || yum install wget -y
   
   2. wget https://bootstrap.pypa.io/pip/2.7/get-pip.py --no-check-certificate
   
@@ -109,7 +109,7 @@ cluster_interface=eth1
              
   8. 开始构建ceph镜像
      cd /root/Auto_Ceph/build/ && sh build.sh --tag nautilus
-     
+     docker image ls
       
   9. type ansible || yum install ansible -y
   
@@ -127,7 +127,7 @@ cluster_interface=eth1
 2. 在线部署: 下载docker<除部署节点外, 在其它节点操作以下步骤>
 
 ```
-1. type wget || yum -y install wget -y
+1. type wget || yum install wget -y
 
 2. wget https://bootstrap.pypa.io/pip/2.7/get-pip.py --no-check-certificate
 
@@ -144,21 +144,21 @@ cluster_interface=eth1
 
 
 ### 部署ceph集群
-#### 1. 修改参数
+#### 1. 修改参数<部署节点操作>
 
 ```
 vi /root/Auto_Ceph/config/globals.yml 
 
    ceph_tag: "nautilus"
    docker_registry: "仓库地址:端口"
-   ceph_osd_store_type: "bluestore or filestore < default: bluestore>"
+   ceph_osd_store_type: "bluestore"
    ceph_pool_pg_num: 32 # 设置你的pg数
    ceph_pool_pgp_num: 32 # 设置你的pgp数
    enable_ceph_rgw: "true or false"
    enable_ceph_mds: "true or false"
 ```
    
-#### 2. kolla-ceph部署使用
+#### 2. kolla-ceph部署使用<部署节点操作>
 
 ```
 
@@ -172,8 +172,10 @@ vi /root/Auto_Ceph/config/globals.yml
    
 2.3 部署ceph集群
 
-    1、磁盘打标签(3. 磁盘打标签)
-    2、kolla-ceph -i /root/Auto_Ceph/00-host deploy
+    1、bluestore osd: 为每个osd节点的磁盘打上标签
+       parted  /dev/vdc  -s  -- mklabel  gpt  mkpart KOLLA_CEPH_OSD_BOOTSTRAP_BS  1 -1
+    2、部署ceph-mon、ceph-osd、ceph-mgr、ceph-rgw、ceph-mds
+       kolla-ceph -i /root/Auto_Ceph/00-host deploy
     3、docker exec ceph_mon ceph -s
    
 2.4 删除操作: ceph集群容器和volume
@@ -182,11 +184,11 @@ vi /root/Auto_Ceph/config/globals.yml
   
 2.5 升级操作
 
-    1、下载新ceph镜像
+    1、cd /root/Auto_Ceph/build/ && sh build.sh --tag new_ceph_version
     2、修改最新ceph_tag: "new_ceph_version"
     3、kolla-ceph -i /root/Auto_Ceph/00-host upgrade
    
-2.6 增加osd
+2.6 单独更换部署osd
 
     kolla-ceph -i /root/Auto_Ceph/00-hosts -t ceph-osd
 
@@ -201,7 +203,7 @@ vi /root/Auto_Ceph/config/globals.yml
 ![Image text](https://github.com/ACommoners/CommonerScriptsSet/blob/master/Auto_Ceph/image/cluster.png)
 
   
-#### 3. 磁盘打标签
+#### 3. 磁盘打标签介绍
 
 ##### 3.1. bluestore wal db共用一块盘打标签方式
 
@@ -258,6 +260,14 @@ vi /root/Auto_Ceph/config/globals.yml
      
 2、或者直接外部操作
    docker exec ceph_mon ceph -s
+
+3、osd故障操作
+   docker exec ceph_mon ceph osd crush rm osd.1
+   docker exec ceph_mon ceph osd auth rm osd.1
+   docker exec ceph_mon ceph osd rm osd.1
+   到故障osd节点把容器给干掉,然后换新盘: docker rm -f ceph_osd_1
+   为新磁盘盘打标签: parted  /dev/vdc  -s  -- mklabel  gpt  mkpart KOLLA_CEPH_OSD_BOOTSTRAP_BS  1 -1
+   部署新osd: kolla-ceph -i /root/Auto_Ceph/00-hosts -t ceph-osd
 ```
   
 ### 待开发功能
