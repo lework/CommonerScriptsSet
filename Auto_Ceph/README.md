@@ -196,9 +196,7 @@ vi /root/Auto_Ceph/config/globals.yml
 
 > 部署后检查集群
 
-> docker exec -it ceph_mon bash
-
-> ceph -s
+> docker exec ceph_mon ceph -s
 
 ![Image text](https://github.com/ACommoners/CommonerScriptsSet/blob/master/Auto_Ceph/image/cluster.png)
 
@@ -208,8 +206,6 @@ vi /root/Auto_Ceph/config/globals.yml
 ##### 3.1. bluestore wal db共用一块盘打标签方式
 
   1. parted  /dev/vdc  -s  -- mklabel  gpt  mkpart KOLLA_CEPH_OSD_BOOTSTRAP_BS  1 -1
-
-
     
 ##### 3.2. bluestore 分离db和wal打标签方式
 
@@ -227,7 +223,6 @@ vi /root/Auto_Ceph/config/globals.yml
     4. 指定block.db分区
        parted /dev/vdd -s -- mklabel  gpt mkpart KOLLA_CEPH_OSD_BOOTSTRAP_BS_BLUE1_D 1 10000
     
-
 ```
 > block.db 分区的大小为 block 分区 的 4%大小
 
