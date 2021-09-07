@@ -1,0 +1,2 @@
+---
+- include_tasks: "{{ kolla_ceph_action }}.yml"

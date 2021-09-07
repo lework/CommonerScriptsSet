@@ -1,0 +1,26 @@
+---
+- block:
+  - name: Enable ceph dashboard
+    command: docker exec ceph_mon ceph mgr module enable dashboard --force
+    changed_when: false
+  
+  - name: Set dashborad login user/password
+    command: docker exec ceph_mon ceph dashboard ac-user-create {{ mgr_user }} {{ mgr_password }} administrator
+    ignore_errors: true
+    changed_when: false
+  
+  - name: Disable mgr/dashboard/ssl
+    command: docker exec ceph_mon ceph config set mgr mgr/dashboard/ssl false
+    changed_when: false
+
+  - name: Get mgr dashborad login url
+    shell: docker exec ceph_mon ceph mgr services | awk '/dashboard/{print $2}'
+    changed_when: false
+    register: dashborad
+  
+  - name: debug ceph dashboard login info
+    debug:
+      msg: "login_url: {{ dashborad.stdout.split('\"')[1] }} login_user: {{ mgr_user }} login_password: {{ mgr_password }}"
+  when:
+    - enable_ceph_dashboard | bool
+    - inventory_hostname in groups['ceph-mgr'][0]

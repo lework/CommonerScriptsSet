@@ -1,0 +1,42 @@
+---
+- block:
+  - name: Create rgw user login credentials
+    command: docker exec ceph_mon radosgw-admin user create --uid={{ rgw_user }} --display-name={{ rgw_user }} \
+      --access-key={{ access_key }} --secret-key={{ secret_key }} --system
+    changed_when: false
+    ignore_errors: true
+
+  - name: Set rgw-api access key
+    command: docker exec ceph_mon ceph dashboard set-rgw-api-access-key {{ access_key }}
+    changed_when: false
+  
+  - name: Set rgw api secret key
+    command: docker exec ceph_mon ceph dashboard set-rgw-api-secret-key {{ secret_key }}
+    changed_when: false
+  
+  - name: Set rgw api host
+    command: docker exec ceph_mon ceph dashboard set-rgw-api-host {{ groups['ceph-rgw'][0] }}
+    changed_when: false
+  
+  - name: Set rgw api port
+    command: docker exec ceph_mon ceph dashboard set-rgw-api-port {{ radosgw_port }}
+    changed_when: false
+
+  - name: Set rgw api scheme
+    command: docker exec ceph_mon ceph dashboard set-rgw-api-scheme http
+    changed_when: false
+
+  - name: Set rgw api user id
+    command: docker exec ceph_mon ceph dashboard set-rgw-api-user-id {{ rgw_user }}
+    changed_when: false
+  
+  - name: Set rgw api ssl verify False
+    command: docker exec ceph_mon ceph dashboard set-rgw-api-ssl-verify False
+    changed_when: false
+
+  - name: Set rest requests timeout
+    command: docker exec ceph_mon ceph dashboard set-rest-requests-timeout 30
+    changed_when: false
+  when:
+    - enable_ceph_rgw | bool
+    - inventory_hostname in groups['ceph-rgw'][0]

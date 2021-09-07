@@ -1,0 +1,9 @@
+---
+- hosts: all
+  gather_facts: false
+  tasks:
+  - name: Ceph action
+    import_role:
+      name: ceph-action
+    tags:
+      - ceph-action
