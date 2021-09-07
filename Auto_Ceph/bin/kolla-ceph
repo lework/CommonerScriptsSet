@@ -33,11 +33,14 @@ Options:
     --verbose, -v                      Increase verbosity of ansible-playbook
 
 Commands:
+   
     prechecks           Do pre-deployment checks for hosts
-    destroy             Destroy Kolla-ceph containers, volumes and host configuration
-    deploy              Deploy and start all kolla-ceph containers
     os                  Initialize the kolla-ceph host
+    deploy              Deploy and start all kolla-ceph containers
+    start-dashborad     Enable ceph dashborad
+    start-rgw-front     Enable object gateway management front-end
     upgrade             Upgrades existing Kolla-ceph Environment
+    destroy             Destroy Kolla-ceph containers, volumes and host configuration
 EOF
 }
 
@@ -58,11 +61,13 @@ cat <<EOF
 --ask-vault-pass
 --vault-password-file
 --verbose -v
-os
 prechecks
-destroy
+os
 deploy
+start-dashborad
+start-rgw-front
 upgrade
+destroy
 EOF
 }
 
@@ -75,10 +80,11 @@ ARGS=$(getopt -o "${SHORT_OPTS}" -l "${LONG_OPTS}" --name "$0" -- "$@") || { usa
 eval set -- "$ARGS"
 
 # BASEDIR=$(dirname $(pwd)) 
-BASEDIR=/root/Auto_Ceph
+BASEDIR=KOLLA-CEPH-PATH
 INVENTORY="${BASEDIR}/00-hosts"
 PLAYBOOK="${BASEDIR}/site.yml"
 OSPLAYBOOK="${BASEDIR}/os.yml"
+ACTIONPLAYBOOK="${BASEDIR}/action.yml"
 GLOABLE=${BASEDIR}/config/globals.yml
 VERBOSITY=
 EXTRA_OPTS=${EXTRA_OPTS}
@@ -184,14 +190,31 @@ esac
 done
 
 case "$1" in
-
+(prechecks)
+        ACTION="Pre-deployment checking"
+        EXTRA_OPTS="$EXTRA_OPTS -e kolla_ceph_action=precheck"
+        ;;
 (os)
         ACTION="Initialize OS"
         PLAYBOOK=${OSPLAYBOOK}
         ;;
-(prechecks)
-        ACTION="Pre-deployment checking"
-        EXTRA_OPTS="$EXTRA_OPTS -e kolla_ceph_action=precheck"
+(deploy)
+        ACTION="Deploying Playbooks"
+        EXTRA_OPTS="$EXTRA_OPTS -e kolla_ceph_action=deploy"
+        ;;
+(start-rgw-front)
+        ACTION="Enable object gateway"
+        EXTRA_OPTS="$EXTRA_OPTS -e kolla_ceph_action=start-rgw-front"
+        PLAYBOOK=${ACTIONPLAYBOOK}
+        ;;
+(start-dashborad)
+        ACTION="Enable ceph dashborad"
+        EXTRA_OPTS="$EXTRA_OPTS -e kolla_ceph_action=start-dashborad"
+        PLAYBOOK=${ACTIONPLAYBOOK}
+        ;;
+(upgrade)
+        ACTION="Upgrading Ceph Environment"
+        EXTRA_OPTS="$EXTRA_OPTS -e kolla_ceph_action=upgrade"
         ;;
 (destroy)
         ACTION="Destroy Kolla-ceph containers, volumes and host configuration"
@@ -205,14 +228,6 @@ WARNING:
 EOF
             exit 1
         fi
-        ;;
-(deploy)
-        ACTION="Deploying Playbooks"
-        EXTRA_OPTS="$EXTRA_OPTS -e kolla_ceph_action=deploy"
-        ;;
-(upgrade)
-        ACTION="Upgrading Ceph Environment"
-        EXTRA_OPTS="$EXTRA_OPTS -e kolla_ceph_action=upgrade"
         ;;
 (bash-completion)
         bash_completion

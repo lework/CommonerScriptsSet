@@ -53,8 +53,8 @@ function kolla_ceph(){
         logger warn "kolla-ceph already installed"   
         exit 0
      fi 
-     sed -i "s|KOLLA-CEPH-PATH|${BASE_DIR}|g" ${KOLLA_CEPH_PATH}
      \cp ${KOLLA_CEPH_PATH} /usr/local/bin/
+     sed -i "s|KOLLA-CEPH-PATH|${BASE_DIR}|g" /usr/local/bin/kolla-ceph
      logger info "Kolla-ceph install success"
   fi
 
