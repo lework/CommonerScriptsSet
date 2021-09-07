@@ -108,9 +108,19 @@ cluster_interface=eth1
      vi /root/Auto_Ceph/build/ceph-build.conf
      registry = 172.17.2.179:5000 # 必须按照实际修改, 其它默认既可 
              
-  8. 开始构建ceph镜像
+  8. 开始构建ceph镜像, 查看镜像
      cd /root/Auto_Ceph/build/ && sh build.sh --tag nautilus
      docker image ls
+       REPOSITORY                                                TAG                 IMAGE ID            CREATED             SIZE
+       172.20.163.77:5000/kolla-ceph/centos-binary-ceph-mon      nautilus            a5e8a5ff08fc        13 days ago         792MB
+       172.20.163.77:5000/kolla-ceph/centos-binary-ceph-osd      nautilus            118b704bcf88        13 days ago         793MB
+       172.20.163.77:5000/kolla-ceph/centos-binary-cephfs-fuse   nautilus            6b00fc4b6e2e        13 days ago         792MB
+       172.20.163.77:5000/kolla-ceph/centos-binary-ceph-mds      nautilus            b206c578e594        13 days ago         792MB
+       172.20.163.77:5000/kolla-ceph/centos-binary-ceph-rgw      nautilus            e9f5e4bca8ab        13 days ago         792MB
+       172.20.163.77:5000/kolla-ceph/centos-binary-ceph-mgr      nautilus            b561bf427142        13 days ago         792MB
+       172.20.163.77:5000/kolla-ceph/centos-binary-ceph-base     nautilus            eae0898ce208        13 days ago         792MB
+       172.20.163.77:5000/kolla-ceph/centos-binary-base          nautilus            d48db6e179f9        13 days ago         410MB
+
       
   9. type ansible || yum install ansible -y
   
@@ -120,10 +130,6 @@ cluster_interface=eth1
       cd /root/Auto_Ceph/bin && sh install -K
       
   ```
-
-> ceph镜像
-![Image text](https://github.com/ACommoners/CommonerScriptsSet/blob/master/Auto_Ceph/image/image-list.png)
-
   
 2. 在线部署: 下载docker<除部署节点外, 在其它节点操作以下步骤>
 
@@ -178,7 +184,23 @@ vi /root/Auto_Ceph/config/globals.yml
     2、部署ceph-mon、ceph-osd、ceph-mgr、ceph-rgw、ceph-mds
        kolla-ceph -i /root/Auto_Ceph/00-host deploy
     3、docker exec ceph_mon ceph -s
-   
+         cluster:
+           id:     4a9e463a-4853-4237-a5c5-9ae9d25bacda
+           health: HEALTH_OK
+        
+         services:
+           mon: 3 daemons, quorum 172.20.163.67,172.20.163.77,172.20.163.238 (age 2h)
+           mgr: 172.20.163.238(active, since 2h), standbys: 172.20.163.77, 172.20.163.67
+           mds: cephfs:1 {0=devops2=up:active} 2 up:standby
+           osd: 4 osds: 4 up (since 2h), 4 in (since 13d)
+           rgw: 1 daemon active (radosgw.gateway)
+        
+         data:
+           pools:   7 pools, 104 pgs
+           objects: 260 objects, 7.6 KiB
+           usage:   4.1 GiB used, 76 GiB / 80 GiB avail
+           pgs:     104 active+clean   
+
 2.4 删除操作: ceph集群容器和volume
 
     kolla-ceph -i /root/Auto_Ceph/00-host  destroy --yes-i-really-really-mean-it
@@ -203,13 +225,6 @@ vi /root/Auto_Ceph/config/globals.yml
 
 
 ```
-
-> 部署后检查集群
-
-> docker exec ceph_mon ceph -s
-
-![Image text](https://github.com/ACommoners/CommonerScriptsSet/blob/master/Auto_Ceph/image/cluster.png)
-
   
 #### 3. 磁盘打标签介绍
 
@@ -274,21 +289,18 @@ vi /root/Auto_Ceph/config/globals.yml
    为新磁盘盘打标签: parted  /dev/vdc  -s  -- mklabel  gpt  mkpart KOLLA_CEPH_OSD_BOOTSTRAP_BS  1 -1
    部署新osd: kolla-ceph -i /root/Auto_Ceph/00-hosts -t ceph-osd
 ```
-  
+
+### ceph dashboard 
+
+![Image text](https://github.com/ACommoners/CommonerScriptsSet/blob/master/Auto_Ceph/image/dash1.png)
+
+![Image text](https://github.com/ACommoners/CommonerScriptsSet/blob/master/Auto_Ceph/image/dash2.png)
+
+![Image text](https://github.com/ACommoners/CommonerScriptsSet/blob/master/Auto_Ceph/image/rgw1.png)
+
 ### 待开发功能
 
 ```
 1. 基于kolla-ceph的ceph集群健康状态巡检
 2. 基于kolla-ceph的osd运维操作
 ```
-> ceph dashboard 
-
-![Image text](https://github.com/ACommoners/CommonerScriptsSet/blob/master/Auto_Ceph/image/dash1.png)
-
-![Image text](https://github.com/ACommoners/CommonerScriptsSet/blob/master/Auto_Ceph/image/dash2.png)
-
-
-> ceph dashboard rgw
-
-![Image text](https://github.com/ACommoners/CommonerScriptsSet/blob/master/Auto_Ceph/image/rgw1.png)
-
