@@ -23,18 +23,19 @@
 
 ```
 Auto_Ceph
-├── 00-hosts 部署的主机
+├── 00-hosts
 ├── README.md
-├── action_plugins ansible插件
-├── bin 安装kolla-ceph、docker
-├── build 镜像构建
-├── config 动态变量文件和ceph.conf个性化配置
-├── group_vars 默认变量
-├── library ansible模块
-├── os.yml 主机初始化playbook
+├── action_plugins
+├── action.yml
+├── bin
+├── build
+├── config
+├── group_vars
+├── library
+├── os.yml
 ├── requirements.txt 
-├── roles 部署代码
-└── site.yml 部署ceph playbook
+├── roles
+└── site.yml
 ```
 > 系统: Centos  
 > 环境: 3台虚拟机(可采用单节点或多节点)，下载`Auto_Ceph`项目放在/root/目录下    
@@ -192,6 +193,15 @@ vi /root/Auto_Ceph/config/globals.yml
 
     kolla-ceph -i /root/Auto_Ceph/00-hosts -t ceph-osd
 
+2.7 开启ceph dashborad
+    enable_ceph_dashboard: true
+    kolla-ceph -i /root/Auto_Ceph/00-hosts start-dashborad
+
+2.8 启用对象网关管理前端
+    enable_ceph_rgw: true   
+    kolla-ceph -i /root/Auto_Ceph/00-hosts start-rgw-front
+
+
 ```
 
 > 部署后检查集群
@@ -271,43 +281,13 @@ vi /root/Auto_Ceph/config/globals.yml
 1. 基于kolla-ceph的ceph集群健康状态巡检
 2. 基于kolla-ceph的osd运维操作
 ```
- 
-### ceph dashboard(默认已经开启)
-
-```
-1. /root/Auto_Ceph/config/globals.yml 开启dashboard
-   enable_ceph_dashboard: true 默认已开启则不用管，否则要kolla-ceph -i /root/Auto_Ceph/00-host deploy -t ceph-mgr
-
-2. 创建一个dashboard登录用户名密码
-   ceph dashboard ac-user-create admin admin administrator
-
-```
 > ceph dashboard 
 
 ![Image text](https://github.com/ACommoners/CommonerScriptsSet/blob/master/Auto_Ceph/image/dash1.png)
 
 ![Image text](https://github.com/ACommoners/CommonerScriptsSet/blob/master/Auto_Ceph/image/dash2.png)
 
-### 启用对象网关管理前端
 
-```
-1. /root/Auto_Ceph/config/globals.yml 开启rgw
-   enable_ceph_rgw: true
-2. kolla-ceph -i /root/Auto_Ceph/00-host deploy -t ceph-rgw
-3. 使用仪表板的对象网关管理功能，您需要提供system启用该标志的用户的登录凭据
-   radosgw-admin user create --uid=admin --display-name=admin --access-key=admin123 --secret-key=admin123 --system
-4. 提供access-key和secret-key
-   ceph dashboard set-rgw-api-access-key admin123
-   ceph dashboard set-rgw-api-secret-key admin123
-5. ceph dashboard set-rgw-api-host 0.0.0.0/0
-6. ceph dashboard set-rgw-api-port 7480
-7. ceph dashboard set-rgw-api-scheme http
-8. ceph dashboard set-rgw-api-user-id admin
-9. 关闭对象存储签名证书
-   ceph dashboard set-rgw-api-ssl-verify False
-10.ceph dashboard set-rest-requests-timeout 30
-
-```
 > ceph dashboard rgw
 
 ![Image text](https://github.com/ACommoners/CommonerScriptsSet/blob/master/Auto_Ceph/image/rgw1.png)
