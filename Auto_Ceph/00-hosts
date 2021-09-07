@@ -5,22 +5,22 @@
 # 172.17.2.179 storage_interface=eth0
 
 [mon]
-172.20.163.244 storage_interface=eth0
+172.20.163.77 storage_interface=eth0
 172.20.163.67 storage_interface=eth0
 172.20.163.238 storage_interface=eth0
 
 [mgr]
-172.20.163.244 storage_interface=eth0
+172.20.163.77 storage_interface=eth0
 172.20.163.67 storage_interface=eth0
 172.20.163.238 storage_interface=eth0
 
 [osd]
-172.20.163.244 storage_interface=eth0
+172.20.163.77 storage_interface=eth0
 172.20.163.67 storage_interface=eth0
 172.20.163.238 storage_interface=eth0
 
 [rgw]
-172.20.163.244 storage_interface=eth0
+172.20.163.77 storage_interface=eth0
 172.20.163.67 storage_interface=eth0
 172.20.163.238 storage_interface=eth0
 
