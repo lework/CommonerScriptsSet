@@ -36,9 +36,16 @@ ceph_pool_pgp_num: 32
 enable_ceph_rgw: true
 #Ceph rgw port
 radosgw_port: 7480
+# rgw api user and key
+rgw_user: "admin"
+access_key: "12345678901qaz2wsx"
+secret_key: "12345678901qaz2wsx"
+
 # enable_ceph_mds: true or false
 enable_ceph_mds: false
 # enable_ceph_nfs: true or false
 enable_ceph_nfs: false
 # enable_ceph_dashboard: true or false
 enable_ceph_dashboard: true
+mgr_user: "admin"
+mgr_password: "12345678901qaz2wsx"
